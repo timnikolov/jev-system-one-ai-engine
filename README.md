@@ -3,7 +3,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
-[![AI PM Portfolio](https://img.shields.io/badge/Portfolio-AI%20Product%20Manager-purple.svg)]()
+[![AI PM Portfolio](https://img.shields.io/badge/Portfolio-AI%20Product%20Manager-purple.svg)](https://github.com/timnikolov)
+[![GitHub Profile](https://img.shields.io/badge/GitHub-timnikolov-181717.svg?logo=github)](https://github.com/timnikolov)
 
 ---
 
@@ -77,7 +78,7 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 
 ### 1. Clone Repository & Install Dependencies
 ```bash
-git clone https://github.com/YOUR_USERNAME/jev-system-one-ai-engine.git
+git clone https://github.com/timnikolov/jev-system-one-ai-engine.git
 cd jev-system-one-ai-engine
 npm install
 ```
@@ -169,7 +170,7 @@ jev-system-one-ai-engine/
 │   └── types.js                 # JSDoc Schema & Type Definitions
 ├── .gitignore                   # Git Ignore Specification
 ├── config.example.json          # Sanitized Configuration Template
-├── package.json                 # Node.js Project Configuration
+├── package.json                 # ES Module Package Spec
 └── README.md                    # Executive AI PM Portfolio Documentation
 ```
 
@@ -177,7 +178,7 @@ jev-system-one-ai-engine/
 
 ## 🛠️ AI Product Manager (AI PM) Portfolio Context
 
-**Author**: Strategic AI Product Manager  
+**Author**: Tim Nikolov ([@timnikolov](https://github.com/timnikolov))  
 **Domain**: Quantitative Trading Systems, Generative AI Systems, Deterministic Safety Guardrails  
 **Product Strategy Highlights**:
 - **Risk Mitigation**: Replaced open-ended prompt generation with structured JSON schema constraints to eliminate hallucinated parameters.
