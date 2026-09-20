@@ -1,4 +1,4 @@
-# Technical Architecture & AI System Specification
+# 🏗️ Technical Architecture & AI System Specification
 
 **TypeSafe Jev System One AI Engine** — Multi-Provider 6-Judgment Predictive Engine & Deterministic Policy Guardrail System for High-Frequency Quantitative Trading.
 
@@ -6,43 +6,109 @@
 
 ## 1. Executive Summary & Design Philosophy
 
-Traditional machine learning implementations in quantitative trading often fail due to **probabilistic non-stationarity** and **LLM hallucination risk**. When an autonomous AI system makes unconstrained trading decisions directly from unstructured prompts, it suffers from catastrophic risk exposure during black-swan market regimes.
+Traditional machine learning implementations in quantitative trading often fail due to **probabilistic non-stationarity** and **LLM hallucination risk**. When an autonomous AI system makes unconstrained trading decisions directly from unstructured prompts, it suffers from catastrophic risk exposure during volatile or black-swan market regimes.
 
 To solve this, the **TypeSafe Jev System One AI Engine** enforces a **Hybrid Dual-Engine Pattern**:
 
 ```
-+-----------------------------------------------------------------------------------+
-|                              INPUT TELEMETRY LAYER                                |
-|  (10-Candle M15 Delta Sequences, Multi-TF RSI/ATR, Volume Profile, Account Context)|
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-|                        NEURAL SYSTEM ONE JUDGMENT LAYER                           |
-|       (6 Parallel Neural Judgments via Gemini / Local Qwen 3.8 27B / TypeSafe)    |
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-|                    DETERMINISTIC POLICY ENGINE ("Code Decides")                   |
-|     (Hard Veto Matrix: Low Confidence, Toxicity, Overstretch, Range Ceiling)       |
-|     (Soft Gate Layer: Visual News Proximity & Account Drawdown Warning Cards)     |
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-|                            EVALUATED OUTPUT & TELEMETRY                           |
-|   (SQLite Persistence, Direction Hit Rate %, Mean Absolute Error [MAE] Analytics) |
-+-----------------------------------------------------------------------------------+
+                                  +---------------------------------------+
+                                  |     LIVE MARKET TELEMETRY INGESTION   |
+                                  |  - 10-Candle M15 Delta Sequences      |
+                                  |  - Multi-TF RSI & ATR Analytics       |
+                                  |  - Volume Profile (POC / VAH / VAL)   |
+                                  |  - Account Equity & Drawdown Context  |
+                                  +-------------------+-------------------+
+                                                      |
+                                                      v
+                                  +---------------------------------------+
+                                  |  NEURAL SYSTEM ONE JUDGMENT LAYER     |
+                                  |  (Gemini / Qwen 3.8 / TypeSafe Cloud) |
+                                  |                                       |
+                                  |  Evaluates 6 Parallel Judgments:      |
+                                  |  1. Candle Directional Score (1.0-5.0)|
+                                  |  2. Neural Model Confidence (50-95%)  |
+                                  |  3. Market Regime Classification      |
+                                  |  4. Signal Quality Confluence (1.0-5) |
+                                  |  5. Order Flow Toxicity Prob (0-1.0)  |
+                                  |  6. Regime Changepoint Prob (0-1.0)   |
+                                  +-------------------+-------------------+
+                                                      |
+                                                      v
+                                  +---------------------------------------+
+                                  |  DETERMINISTIC POLICY GUARDRAILS      |
+                                  |         ("Code Decides Layer")        |
+                                  +-------------------+-------------------+
+                                                     / \
+                                                    /   \
+                                       Hard Vetoes /     \ Visual Soft Warnings
+                                                  /       \
+                                                 v         v
+                     +----------------------------------+  +----------------------------------+
+                     |  EXECUTION BLOCKED               |  |  NON-BLOCKING USER ALERTS        |
+                     |  - Low Confidence (< 70%)        |  |  - News Release Proximity Window |
+                     |  - Toxic Order Flow (>= 55%)     |  |  - Account Drawdown Warning Cards|
+                     |  - Range Ceiling Wall Resistance |  |  - Spread Expansion Widening     |
+                     +----------------------------------+  +----------------------------------+
+                                                 \         /
+                                                  \       /
+                                                   v     v
+                                  +---------------------------------------+
+                                  |  CLOSED-LOOP EVALUATION & DATABASE    |
+                                  |  - Embedded SQLite Telemetry Log      |
+                                  |  - Target Close Price Evaluation      |
+                                  |  - Direction Hit Rate % & MAE Stats   |
+                                  +---------------------------------------+
 ```
 
 ---
 
-## 2. 6 Parallel Neural Judgments Design Pattern
+## 2. End-to-End Sequence Diagram (Mermaid)
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as REST Client / HFT Daemon
+    participant Predictor as System One Predictor (predictor.js)
+    participant LLM as Multi-Provider LLM Engine (llm_engine.js)
+    participant Policy as Deterministic Policy Engine ("Code Decides")
+    participant DB as SQLite Telemetry Database (database.js)
+
+    Client->>Predictor: POST /api/v1/predict (TelemetryInputState JSON)
+    Note over Predictor: 1. Parse 10-Candle Deltas, RSI Divergence & Spread Status
+    Predictor->>Predictor: Build Rich State Payload JSON
+    Predictor->>LLM: askSystemOneJev(statePayload)
+    
+    alt Remote / Local Neural Model Available
+        LLM-->>Predictor: Returns 6 Neural Judgments JSON
+    else Connection Timeout / Unavailable
+        LLM-->>Predictor: Fallback to Calibrated Quantitative Predictor
+    end
+
+    Note over Predictor: 2. Map Granular Thresholds & ATR Delta Ranges
+    Predictor->>Policy: Evaluate Guardrail Matrix (Confidence, Toxicity, Range Wall, ADR)
+    
+    alt Hard Veto Condition Triggered (e.g. Confidence < 70%)
+        Policy-->>Predictor: Returns isTradeVetoed = true + VETO_REASON
+    else Confluence Passed
+        Policy-->>Predictor: Returns isTradeVetoed = false + APPROVED_TRADE_EXECUTION
+    end
+
+    Predictor->>DB: insertPrediction(predictionPayload)
+    Predictor-->>Client: Returns 200 OK (PredictionResult Payload)
+    
+    Note over DB: 3. Target Candle Period Closes
+    Client->>Predictor: POST /api/v1/evaluate (actualClosePrice)
+    Predictor->>DB: evaluatePrediction(id, actualClosePrice)
+    Note over DB: Computes Direction Hit Rate % & Mean Absolute Error (MAE)
+```
+
+---
+
+## 3. 6 Parallel Neural Judgments Specification
 
 Instead of requesting an unstructured text summary or a single binary trade decision, System One queries the LLM for **6 parallel structured judgments**:
 
-| Judgment Symbol | Data Type | Range / Options | Product Definition & Purpose |
+| Judgment Symbol | Data Type | Scale / Enum | Product Definition & Purpose |
 |---|---|---|---|
 | `candle_score` | Continuous Score | `1.0` - `5.0` | Directional conviction for the next M15 candle (`1.0` = Extreme Bear, `3.0` = Neutral, `5.0` = Extreme Bull). |
 | `confidence` | Probability | `0.50` - `0.95` | Model's statistical certainty in its technical assessment. |
@@ -53,7 +119,7 @@ Instead of requesting an unstructured text summary or a single binary trade deci
 
 ---
 
-## 3. Deterministic Safety Matrix: Hard Vetoes vs Visual Soft Warnings
+## 4. Deterministic Safety Matrix: Hard Vetoes vs Visual Soft Warnings
 
 To guarantee capital protection, **"Code Decides"**. The LLM provides scores and probabilities, but a deterministic policy layer evaluates hard veto rules:
 
@@ -70,16 +136,62 @@ To guarantee capital protection, **"Code Decides"**. The LLM provides scores and
 
 ---
 
-## 4. Ground-Truth Telemetry Parsing
+## 5. Standardized Telemetry Schema & Payload Specification
 
-To eliminate hallucination, input telemetry is passed in a rich, type-safe JSON schema:
-- **10-Candle Synchronized Sequences**: Close prices, point deltas, 14-period RSI sequence, 14-period ATR sequence, and candle wick rejection classifications.
-- **Moving Average Stack Analytics**: Distance in points from current bid to 21, 50, 55, 89/144, and 200 EMAs + stack alignment classification (`PERFECT_BULLISH_EMA_STACK`).
-- **Multi-Timeframe Structure**: Synchronized RSI, ATR, and Volume Profile (POC, VAH, VAL) across M15, H1, H4, and D1 timeframes.
+### Canonical Input Telemetry Schema (`TelemetryInputState`)
+```json
+{
+  "symbol": "USTEC",
+  "quote": {
+    "bid": 19850.50,
+    "ask": 19851.50,
+    "spread": 10.0,
+    "rsi": 68.4,
+    "macd": 12.5
+  },
+  "positionsAnalysis": {
+    "atr": 42.5
+  },
+  "recentCloses": [19810, 19815.5, 19822, 19828.4, 19835, 19832.1, 19840, 19844.5, 19848, 19850.5],
+  "rsiSequence": [52.0, 54.5, 57.1, 60.2, 62.8, 64.0, 65.5, 66.8, 67.9, 68.4],
+  "account": {
+    "balance": 25000.0,
+    "equity": 24850.0
+  },
+  "macroEvents": [
+    { "title": "US Core CPI YoY", "time": "14:30", "impact": "HIGH" }
+  ]
+}
+```
+
+### Canonical Output Prediction Payload (`PredictionResultPayload`)
+```json
+{
+  "timestamp": "2026-09-20T21:30:00.000Z",
+  "timeframe": "M15",
+  "predictedScore": 4.2,
+  "predictedDirection": "BULLISH_UP",
+  "predictedMagnitude": "MODERATE_EXPANSION",
+  "predictedDeltaRange": "+26 to +77 pts",
+  "marketRegime": "STRONG_BULL_EXPANSION",
+  "confidence": 0.88,
+  "signalQualityScore": 4.0,
+  "marketToxicityProb": 0.15,
+  "regimeTransitionProb": 0.20,
+  "policyVerdict": "APPROVED_TRADE_EXECUTION",
+  "policyGateReason": "High Confluence Setup Passed",
+  "isTradeVetoed": false,
+  "actionableSetup": "YES - Bullish Setup (75% Conviction | Quality 4.0/5.0)",
+  "softGateWarnings": "NEWS: HIGH_IMPACT_NEWS_PROXIMITY (US Core CPI YoY)",
+  "predictionSource": "LOCAL_LLM_QWEN",
+  "startPrice": 19850.5,
+  "targetCloseTimestamp": 1789932600000
+}
+```
 
 ---
 
-## 5. Quantitative Evaluation & Accuracy Tracking
+## 6. Quantitative Evaluation & Accuracy Tracking
 
 Every prediction target is linked to a future target candle close timestamp. Upon period completion, the engine automatically calculates:
 1. **Direction Hit Rate %**: Percentage of evaluated candles where predicted direction matched actual price delta direction.

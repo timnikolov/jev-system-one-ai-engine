@@ -23,36 +23,71 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 
 ---
 
-## 📐 System Architecture
+## 📐 End-to-End System Architecture
 
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Client as REST Client / HFT Daemon
+    participant Predictor as System One AI Engine (src/predictor.js)
+    participant LLM as Multi-Provider LLM (src/llm_engine.js)
+    participant Policy as Deterministic Guardrails ("Code Decides")
+    participant DB as SQLite Telemetry DB (src/database.js)
+
+    Client->>Predictor: POST /api/v1/predict (TelemetryInputState JSON)
+    Note over Predictor: 1. Ingest 10-Candle Deltas, RSI Divergence & Spread Status
+    Predictor->>Predictor: Build Rich State Payload JSON
+    Predictor->>LLM: askSystemOneJev(statePayload)
+    
+    alt Neural Model Available (Gemini / Qwen 3.8 / Cloud)
+        LLM-->>Predictor: Returns 6 Parallel Neural Judgments JSON
+    else Connection Timeout / Local Offline
+        LLM-->>Predictor: Fallback to Quantitative Calibrated Predictor
+    end
+
+    Note over Predictor: 2. Map Granular Thresholds & ATR Delta Ranges
+    Predictor->>Policy: Evaluate Guardrail Matrix (Confidence, Toxicity, Range Wall, ADR)
+    
+    alt Hard Veto Triggered (e.g., Model Confidence < 70%)
+        Policy-->>Predictor: isTradeVetoed = true (Verdict: VETO_LOW_CONFIDENCE_CHOP)
+    else Confluence Passed
+        Policy-->>Predictor: isTradeVetoed = false (Verdict: APPROVED_TRADE_EXECUTION)
+    end
+
+    Predictor->>DB: insertPrediction(predictionPayload)
+    Predictor-->>Client: Returns 200 OK (PredictionResultPayload JSON)
+    
+    Note over DB: 3. Target Candle Close Evaluation
+    Client->>Predictor: POST /api/v1/evaluate (actualClosePrice)
+    Predictor->>DB: evaluatePrediction(id, actualClosePrice)
+    Note over DB: Computes Direction Hit Rate % & Mean Absolute Error (MAE)
 ```
-                                  +------------------------------+
-                                  | Live Market Telemetry & HFT  |
-                                  |   Sequence Ingestion (M15)   |
-                                  +--------------+---------------+
-                                                 |
-                                                 v
-                                  +------------------------------+
-                                  |   System One AI Engine       |
-                                  | (Gemini / Qwen 3.8 / Cloud)  |
-                                  +--------------+---------------+
-                                                 |
-                                   Outputs 6 Parallel Judgments
-                                                 |
-                                                 v
-                                  +------------------------------+
-                                  | Deterministic Policy Engine  |
-                                  |       ("Code Decides")       |
-                                  +--------------+---------------+
-                                      /                      \
-                         Hard Vetoes                        Soft Warnings
-                        (Execution Blocked)               (Visual Alerts)
-                               |                             |
-                               v                             v
-                   +-----------------------+    +-----------------------+
-                   | VETO_TOXIC_ORDER_FLOW |    | NEWS_FREEZE_PROXIMITY |
-                   | VETO_LOW_CONFIDENCE   |    | ELEVATED_DRAWDOWN_WARN|
-                   +-----------------------+    +-----------------------+
+
+### High-Level System Pipeline Graph
+```
++-----------------------------------------------------------------------------------+
+|                              INPUT TELEMETRY LAYER                                |
+|  - 10-Candle M15 Delta Sequences  - Multi-TF RSI/ATR  - Volume Profile (POC/VAH/VAL)|
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                        NEURAL SYSTEM ONE JUDGMENT LAYER                           |
+|       (6 Parallel Neural Judgments via Gemini / Local Qwen 3.8 27B / TypeSafe)    |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                    DETERMINISTIC POLICY ENGINE ("Code Decides")                   |
+|     (Hard Veto Matrix: Low Confidence, Toxicity, Overstretch, Range Ceiling)       |
+|     (Soft Gate Layer: Visual News Proximity & Account Drawdown Warning Cards)     |
++-----------------------------------------------------------------------------------+
+                                         |
+                                         v
++-----------------------------------------------------------------------------------+
+|                            EVALUATED OUTPUT & TELEMETRY                           |
+|   (SQLite Persistence, Direction Hit Rate %, Mean Absolute Error [MAE] Analytics) |
++-----------------------------------------------------------------------------------+
 ```
 
 ---
@@ -114,36 +149,66 @@ Starts Express server on `http://localhost:3000`.
 
 ---
 
-## 📡 REST API Reference
+## 📡 REST API Reference & Canonical Schemas
 
 ### `POST /api/v1/predict`
-Executes System One prediction and policy evaluation.
+Executes System One prediction and policy evaluation against provided market state telemetry.
 
-**Request Payload Example:**
+**Request Payload Example (`TelemetryInputState`):**
 ```json
 {
   "symbol": "USTEC",
-  "quote": { "bid": 19850.50, "spread": 10.0, "rsi": 68.4 },
-  "positionsAnalysis": { "atr": 42.5 },
-  "recentCloses": [19810, 19820, 19830, 19840, 19850.5],
-  "account": { "balance": 25000, "equity": 24850 }
+  "quote": {
+    "bid": 19850.50,
+    "ask": 19851.50,
+    "spread": 10.0,
+    "rsi": 68.4,
+    "macd": 12.5
+  },
+  "positionsAnalysis": {
+    "atr": 42.5
+  },
+  "recentCloses": [19810, 19815.5, 19822, 19828.4, 19835, 19832.1, 19840, 19844.5, 19848, 19850.5],
+  "rsiSequence": [52.0, 54.5, 57.1, 60.2, 62.8, 64.0, 65.5, 66.8, 67.9, 68.4],
+  "account": {
+    "balance": 25000.0,
+    "equity": 24850.0
+  },
+  "macroEvents": [
+    { "title": "US Core CPI YoY", "time": "14:30", "impact": "HIGH" }
+  ]
 }
 ```
 
-**Response Example:**
+**Response Payload Example (`PredictionResultPayload`):**
 ```json
 {
   "success": true,
   "prediction": {
+    "timestamp": "2026-09-20T21:30:00.000Z",
+    "timeframe": "M15",
     "predictedScore": 4.2,
     "predictedDirection": "BULLISH_UP",
+    "predictedMagnitude": "MODERATE_EXPANSION",
+    "predictedDeltaRange": "+26 to +77 pts",
     "marketRegime": "STRONG_BULL_EXPANSION",
     "confidence": 0.88,
     "signalQualityScore": 4.0,
+    "marketToxicityProb": 0.15,
+    "regimeTransitionProb": 0.20,
     "policyVerdict": "APPROVED_TRADE_EXECUTION",
+    "policyGateReason": "High Confluence Setup Passed",
     "isTradeVetoed": false,
-    "actionableSetup": "YES - Bullish Setup (75% Conviction | Quality 4/5.0)",
-    "softGateWarnings": "NONE"
+    "actionableSetup": "YES - Bullish Setup (75% Conviction | Quality 4.0/5.0)",
+    "softGateWarnings": "NEWS: HIGH_IMPACT_NEWS_PROXIMITY (US Core CPI YoY)",
+    "predictionSource": "LOCAL_LLM_QWEN",
+    "startPrice": 19850.5,
+    "targetCloseTimestamp": 1789932600000
+  },
+  "accuracyStats": {
+    "totalEvaluated": 124,
+    "directionHitRatePct": 74.2,
+    "meanAbsoluteErrorPts": 14.8
   }
 }
 ```
@@ -171,7 +236,7 @@ jev-system-one-ai-engine/
 ├── .gitignore                   # Git Ignore Specification
 ├── config.example.json          # Sanitized Configuration Template
 ├── package.json                 # ES Module Package Spec
-└── README.md                    # Executive AI PM Portfolio Documentation
+└── README.md                    # Executive AI PM Portfolio Documentation (@timnikolov)
 ```
 
 ---

@@ -14,22 +14,24 @@ export function getLastJevInputPayload() {
 
 /**
  * Predict next candle direction, magnitude, and market regime, enforcing deterministic policy rules
- * @param {Object} liveState Market telemetry and account state
- * @returns {Promise<Object>} Prediction result and accuracy stats
+ * @param {import('./types.js').TelemetryInputState} liveState Market telemetry and account state
+ * @returns {Promise<{success: boolean, prediction?: Object, lastInput?: Object, accuracyStats?: Object, error?: string, reason?: string}>} Prediction result
  */
-export async function runTypeSafeJevPrediction(liveState) {
+export async function runTypeSafeJevPrediction(liveState = {}) {
   try {
-    const currentBid = liveState.quote?.bid || 0;
+    // Standardized quote parameter extraction with fallback
+    const currentBid = liveState.quote?.bid ?? liveState.bid ?? 0;
     if (!currentBid || currentBid === 0) {
       return { success: false, reason: 'Market bid quote unavailable' };
     }
 
-    // Evaluate pending predictions against current close price
+    // Automatically evaluate pending predictions against current close price
     evaluatePendingPredictions(currentBid);
 
-    const rsi = liveState.quote?.rsi || 50.0;
-    const macd = liveState.quote?.macd || 0.0;
-    const atr = liveState.positionsAnalysis?.atr || 43.1;
+    const symbol = liveState.symbol || 'USTEC (US Tech 100 Index Futures)';
+    const rsi = liveState.quote?.rsi ?? liveState.rsi ?? 50.0;
+    const macd = liveState.quote?.macd ?? liveState.macd ?? 0.0;
+    const atr = liveState.positionsAnalysis?.atr ?? liveState.atr ?? 43.1;
     const timeframe = 'M15';
 
     // Target close timestamp (Next sharp 15m candle close)
@@ -40,22 +42,34 @@ export async function runTypeSafeJevPrediction(liveState) {
     targetCloseDate.setMinutes(next15Min, 0, 0);
     const targetCloseTimestamp = targetCloseDate.getTime();
 
-    // 1. Build Synchronized 10-Candle Multi-Series Telemetry Sequence
-    const recentCloses = liveState.recentCloses || [
-      currentBid - 32, currentBid - 28, currentBid - 18, currentBid - 12, currentBid - 15,
-      currentBid - 8, currentBid - 2, currentBid + 4, currentBid + 10, currentBid
-    ];
+    // 1. Synchronized 10-Candle Multi-Series Telemetry Sequence
+    const recentCloses = (Array.isArray(liveState.recentCloses) && liveState.recentCloses.length > 0)
+      ? liveState.recentCloses
+      : [
+          +(currentBid - 40.5).toFixed(1), +(currentBid - 35.0).toFixed(1), +(currentBid - 28.5).toFixed(1),
+          +(currentBid - 22.1).toFixed(1), +(currentBid - 15.5).toFixed(1), +(currentBid - 18.4).toFixed(1),
+          +(currentBid - 10.5).toFixed(1), +(currentBid - 6.0).toFixed(1), +(currentBid - 2.5).toFixed(1),
+          currentBid
+        ];
 
     const candleDeltas = [];
     for (let i = 1; i < recentCloses.length; i++) {
       candleDeltas.push(+(recentCloses[i] - recentCloses[i - 1]).toFixed(1));
     }
 
-    const rsiSeq = liveState.rsiSequence || [52.1, 54.3, 56.1, 58.4, 61.2, 63.8, 66.1, 69.4, 72.1, 74.5];
-    const atrSeq = liveState.atrSequence || [42.1, 42.5, 43.0, 43.1, 43.5];
-    const wickSeq = liveState.wickSequence || ['NORMAL', 'NORMAL', 'UPPER_WICK_REJECTION'];
+    const rsiSeq = (Array.isArray(liveState.rsiSequence) && liveState.rsiSequence.length > 0)
+      ? liveState.rsiSequence
+      : [52.0, 54.5, 57.1, 60.2, 62.8, 64.0, 65.5, 66.8, 67.9, parseFloat(rsi)];
 
-    // 2. Analytics: RSI Divergence & Volatility Squeeze Ratios
+    const atrSeq = (Array.isArray(liveState.atrSequence) && liveState.atrSequence.length > 0)
+      ? liveState.atrSequence
+      : [42.1, 42.5, 43.0, 43.1, parseFloat(atr)];
+
+    const wickSeq = (Array.isArray(liveState.wickSequence) && liveState.wickSequence.length > 0)
+      ? liveState.wickSequence
+      : ['NORMAL', 'NORMAL', 'UPPER_WICK_REJECTION'];
+
+    // 2. Sequence Analytics: Detect RSI Divergence & Volatility Squeeze Ratios
     let rsiDivergence = 'ALIGNED_MOMENTUM';
     if (rsiSeq.length >= 3 && recentCloses.length >= 3) {
       const pLast = recentCloses[recentCloses.length - 1];
@@ -74,8 +88,8 @@ export async function runTypeSafeJevPrediction(liveState) {
     if (atrExpansionRatio >= 1.5) atrExpansionStatus = 'HIGH_VOLATILITY_EXPANSION_BREAKOUT';
     else if (atrExpansionRatio <= 0.7) atrExpansionStatus = 'LOW_VOLATILITY_COMPRESSION_SQUEEZE';
 
-    // Microstructure Spread Analytics
-    const rawSpread = liveState.quote?.spread !== undefined ? parseFloat(liveState.quote.spread) : 10.0;
+    // Microstructure & Spread Analytics
+    const rawSpread = liveState.quote?.spread ?? liveState.spread ?? 10.0;
     const spreadPts = rawSpread <= 5.0 ? +(rawSpread * 10).toFixed(1) : rawSpread;
 
     let spreadStatus = 'NORMAL_LIQUID_SPREAD';
@@ -85,8 +99,8 @@ export async function runTypeSafeJevPrediction(liveState) {
 
     // Account Context & Soft Drawdown Gates
     const acc = liveState.account || {};
-    const accBalance = acc.balance > 0 ? acc.balance : 10000.0;
-    const accEquity = acc.equity > 0 ? acc.equity : 10000.0;
+    const accBalance = (acc.balance && acc.balance > 0) ? acc.balance : 10000.0;
+    const accEquity = (acc.equity && acc.equity > 0) ? acc.equity : 10000.0;
     const drawdownLimitPct = 5.0;
     const currentDrawdownPct = Math.max(0, +(((accBalance - accEquity) / accBalance) * 100).toFixed(2));
     let drawdownStatus = 'NORMAL_DRAWDOWN_SAFE';
@@ -121,7 +135,7 @@ export async function runTypeSafeJevPrediction(liveState) {
       soft_gate_status: 'SOFT_WARNING_VISUAL_ONLY'
     };
 
-    // Gather Soft Gate Warning Flags (Displayed visually without impacting final trade decision)
+    // Soft Gate Warning Flags (Rendered visually to user UI)
     const softGateWarnings = [];
     if (preNewsFreezeWindow) {
       softGateWarnings.push(`NEWS: ${newsEventWarning}`);
@@ -133,7 +147,7 @@ export async function runTypeSafeJevPrediction(liveState) {
       softGateWarnings.push(`ACCOUNT: Drawdown Warning (${currentDrawdownPct}%)`);
     }
 
-    // Dynamic Scale Bands
+    // Dynamic ATR-Relative Range Bands
     const extremeScaleMin = +(currentAtr * 1.5).toFixed(0);
     const extremeScaleMax = +(currentAtr * 3.5).toFixed(0);
     const modScaleMin = +(currentAtr * 0.6).toFixed(0);
@@ -142,9 +156,9 @@ export async function runTypeSafeJevPrediction(liveState) {
     const mildScaleMax = +(currentAtr * 0.8).toFixed(0);
     const neutralScale = +(currentAtr * 0.5).toFixed(0);
 
-    // 3. Construct Rich State Payload
+    // 3. Construct Rich State Payload for System One Neural Reasoning
     const richStatePayload = {
-      symbol: liveState.symbol || 'USTEC (US Tech 100 Index Futures)',
+      symbol,
       timeframe: 'M15',
       current_bid: currentBid,
       target_close_time: targetCloseDate.toLocaleTimeString(),
@@ -156,11 +170,11 @@ export async function runTypeSafeJevPrediction(liveState) {
         warnings: softGateWarnings
       },
       moving_averages_telemetry: liveState.movingAverages || {
-        ema_21: currentBid - 15,
-        ema_50: currentBid - 35,
-        ema_55: currentBid - 40,
-        ema_89_144: currentBid - 70,
-        ema_200: currentBid - 120,
+        ema_21: +(currentBid - 15).toFixed(1),
+        ema_50: +(currentBid - 35).toFixed(1),
+        ema_55: +(currentBid - 40).toFixed(1),
+        ema_89_144: +(currentBid - 70).toFixed(1),
+        ema_200: +(currentBid - 120).toFixed(1),
         ema_stack_alignment: 'PERFECT_BULLISH_EMA_STACK'
       },
       telemetry_sequence_last_10_m15_candles: {
@@ -193,7 +207,7 @@ export async function runTypeSafeJevPrediction(liveState) {
     let isNeuralModelInvoked = false;
     let predictionSource = 'QUANT_HEURISTIC';
 
-    // 4. Invoke Multi-Provider Neural Model (6 Parallel Judgments)
+    // 4. Query Multi-Provider Neural Model for 6 Parallel Judgments
     const neuralResult = await LLMEngine.askSystemOneJev(richStatePayload);
     if (neuralResult && neuralResult.score) {
       predictedScore = neuralResult.score;
@@ -207,7 +221,7 @@ export async function runTypeSafeJevPrediction(liveState) {
       predictionSource = neuralResult.source || 'NEURAL_MODEL';
     }
 
-    // Calibrated Heuristic Fallback if Neural Model is unreachable
+    // Calibrated Quantitative Heuristic Fallback (if remote/local LLM is unreachable)
     if (!isNeuralModelInvoked) {
       let scoreAcc = 3.0;
       if (rsi >= 65.0) scoreAcc += 1.2;
@@ -217,7 +231,7 @@ export async function runTypeSafeJevPrediction(liveState) {
       predictedScore = +Math.min(5.0, Math.max(1.0, scoreAcc)).toFixed(1);
     }
 
-    // Direction & Magnitude Mapping
+    // Universal Continuous Granular Threshold & Range Mapping
     if (predictedScore >= 4.5) {
       predictedDirection = 'BULLISH_UP';
       predictedMagnitude = 'EXTREME_EXPANSION';
@@ -252,7 +266,7 @@ export async function runTypeSafeJevPrediction(liveState) {
       predictedDeltaRange = `-${neutralScale} to +${neutralScale} pts`;
     }
 
-    // Continuous Monotonic NOUL Probability Calculation
+    // Continuous Monotonic NOUL Actionability Calculation
     const scoreDeviation = Math.abs(predictedScore - 3.0);
     noulActionableProb = +(0.45 + (scoreDeviation / 2.0) * 0.50).toFixed(2);
     const probPct = Math.round(noulActionableProb * 100);
@@ -262,9 +276,9 @@ export async function runTypeSafeJevPrediction(liveState) {
     let policyGateReason = 'High Confluence Setup Passed';
     let isTradeVetoed = false;
 
-    const rangeLocationPct = liveState.rangeLocationPct || 50.0;
-    const adrExhaustionPct = liveState.adrExhaustionPct || 70.0;
-    const distToHtfPivot = liveState.distToHtfPivot || 25.0;
+    const rangeLocationPct = liveState.rangeLocationPct ?? 50.0;
+    const adrExhaustionPct = liveState.adrExhaustionPct ?? 70.0;
+    const distToHtfPivot = liveState.distToHtfPivot ?? 25.0;
 
     if (confidence < 0.70) {
       isTradeVetoed = true;
@@ -339,7 +353,8 @@ export async function runTypeSafeJevPrediction(liveState) {
 }
 
 /**
- * Evaluate pending predictions against actual bid close price
+ * Evaluate pending predictions against actual market close price
+ * @param {number} currentBid Actual candle close price
  */
 export function evaluatePendingPredictions(currentBid) {
   try {
