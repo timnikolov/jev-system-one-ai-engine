@@ -10,97 +10,49 @@ Traditional machine learning implementations in quantitative trading often fail 
 
 To solve this, the **TypeSafe Jev System One AI Engine** enforces a **Hybrid Dual-Engine Pattern**:
 
-```
-                                  +---------------------------------------+
-                                  |     LIVE MARKET TELEMETRY INGESTION   |
-                                  |  - 10-Candle M15 Delta Sequences      |
-                                  |  - Multi-TF RSI & ATR Analytics       |
-                                  |  - Volume Profile (POC / VAH / VAL)   |
-                                  |  - Account Equity & Drawdown Context  |
-                                  +-------------------+-------------------+
-                                                      |
-                                                      v
-                                  +---------------------------------------+
-                                  |  NEURAL SYSTEM ONE JUDGMENT LAYER     |
-                                  |  (Gemini / Qwen 3.8 / TypeSafe Cloud) |
-                                  |                                       |
-                                  |  Evaluates 6 Parallel Judgments:      |
-                                  |  1. Candle Directional Score (1.0-5.0)|
-                                  |  2. Neural Model Confidence (50-95%)  |
-                                  |  3. Market Regime Classification      |
-                                  |  4. Signal Quality Confluence (1.0-5) |
-                                  |  5. Order Flow Toxicity Prob (0-1.0)  |
-                                  |  6. Regime Changepoint Prob (0-1.0)   |
-                                  +-------------------+-------------------+
-                                                      |
-                                                      v
-                                  +---------------------------------------+
-                                  |  DETERMINISTIC POLICY GUARDRAILS      |
-                                  |         ("Code Decides Layer")        |
-                                  +-------------------+-------------------+
-                                                     / \
-                                                    /   \
-                                       Hard Vetoes /     \ Visual Soft Warnings
-                                                  /       \
-                                                 v         v
-                     +----------------------------------+  +----------------------------------+
-                     |  EXECUTION BLOCKED               |  |  NON-BLOCKING USER ALERTS        |
-                     |  - Low Confidence (< 70%)        |  |  - News Release Proximity Window |
-                     |  - Toxic Order Flow (>= 55%)     |  |  - Account Drawdown Warning Cards|
-                     |  - Range Ceiling Wall Resistance |  |  - Spread Expansion Widening     |
-                     +----------------------------------+  +----------------------------------+
-                                                 \         /
-                                                  \       /
-                                                   v     v
-                                  +---------------------------------------+
-                                  |  CLOSED-LOOP EVALUATION & DATABASE    |
-                                  |  - Embedded SQLite Telemetry Log      |
-                                  |  - Target Close Price Evaluation      |
-                                  |  - Direction Hit Rate % & MAE Stats   |
-                                  +---------------------------------------+
+```mermaid
+flowchart TD
+    subgraph Layer1 [1. Telemetry Ingestion]
+        A["Market Quotes, 10-Candle M15 Deltas & Multi-TF Technicals"]
+    end
+
+    subgraph Layer2 [2. Neural System One Reasoning]
+        B["LLM Query (6 Parallel Judgments)"]
+    end
+
+    subgraph Layer3 [3. Deterministic Guardrails ("Code Decides")]
+        C{"Policy Engine Matrix"}
+        D["Hard Veto (Blocked)"]
+        E["Soft Warnings (Visual Alert)"]
+        F["Approved Trade Signal"]
+    end
+
+    subgraph Layer4 [4. Closed-Loop Telemetry]
+        G[("SQLite DB & Accuracy Evaluator")]
+    end
+
+    Layer1 --> Layer2
+    Layer2 --> C
+    C -->|Low Confidence / Toxicity| D
+    C -->|Macro News Proximity| E
+    C -->|High Confluence| F
+    D --> Layer4
+    E --> Layer4
+    F --> Layer4
 ```
 
 ---
 
-## 2. End-to-End Sequence Diagram (Mermaid)
+## 2. System Pipeline Breakdown
 
-```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as REST Client / HFT Daemon
-    participant Predictor as System One Predictor (predictor.js)
-    participant LLM as Multi-Provider LLM Engine (llm_engine.js)
-    participant Policy as Deterministic Policy Engine ("Code Decides")
-    participant DB as SQLite Telemetry Database (database.js)
-
-    Client->>Predictor: POST /api/v1/predict (TelemetryInputState JSON)
-    Note over Predictor: 1. Parse 10-Candle Deltas, RSI Divergence & Spread Status
-    Predictor->>Predictor: Build Rich State Payload JSON
-    Predictor->>LLM: askSystemOneJev(statePayload)
-    
-    alt Remote / Local Neural Model Available
-        LLM-->>Predictor: Returns 6 Neural Judgments JSON
-    else Connection Timeout / Unavailable
-        LLM-->>Predictor: Fallback to Calibrated Quantitative Predictor
-    end
-
-    Note over Predictor: 2. Map Granular Thresholds & ATR Delta Ranges
-    Predictor->>Policy: Evaluate Guardrail Matrix (Confidence, Toxicity, Range Wall, ADR)
-    
-    alt Hard Veto Condition Triggered (e.g. Confidence < 70%)
-        Policy-->>Predictor: Returns isTradeVetoed = true + VETO_REASON
-    else Confluence Passed
-        Policy-->>Predictor: Returns isTradeVetoed = false + APPROVED_TRADE_EXECUTION
-    end
-
-    Predictor->>DB: insertPrediction(predictionPayload)
-    Predictor-->>Client: Returns 200 OK (PredictionResult Payload)
-    
-    Note over DB: 3. Target Candle Period Closes
-    Client->>Predictor: POST /api/v1/evaluate (actualClosePrice)
-    Predictor->>DB: evaluatePrediction(id, actualClosePrice)
-    Note over DB: Computes Direction Hit Rate % & Mean Absolute Error (MAE)
-```
+1. **Layer 1: Telemetry Ingestion (`TelemetryInputState`)**
+   - Real-time bid quotes, 10-candle M15 delta sequences, RSI divergence detection, ATR squeeze ratios, and account drawdown context.
+2. **Layer 2: Neural System One Reasoning (`askSystemOneJev`)**
+   - Queries multi-provider LLM (Gemini / Local Qwen 3.8 27B / TypeSafe Cloud API) for 6 parallel mathematical judgments.
+3. **Layer 3: Deterministic Guardrails ("Code Decides")**
+   - Evaluates safety rules: blocks execution for low confidence, toxicity, or range ceiling walls (**Hard Vetoes**), while visually alerting users to economic news windows (**Soft Warnings**).
+4. **Layer 4: Closed-Loop Evaluation (`database.js`)**
+   - Stores telemetry JSON in embedded SQLite database and measures Direction Hit Rate % and Mean Absolute Error (MAE) against target candle close prices.
 
 ---
 
@@ -120,8 +72,6 @@ Instead of requesting an unstructured text summary or a single binary trade deci
 ---
 
 ## 4. Deterministic Safety Matrix: Hard Vetoes vs Visual Soft Warnings
-
-To guarantee capital protection, **"Code Decides"**. The LLM provides scores and probabilities, but a deterministic policy layer evaluates hard veto rules:
 
 ### Hard Veto Matrix (Execution Blocked)
 1. **Low Confidence Cutoff**: If `confidence < 0.70`, verdict set to `VETO_LOW_CONFIDENCE_CHOP`.
@@ -188,13 +138,4 @@ To guarantee capital protection, **"Code Decides"**. The LLM provides scores and
   "targetCloseTimestamp": 1789932600000
 }
 ```
-
----
-
-## 6. Quantitative Evaluation & Accuracy Tracking
-
-Every prediction target is linked to a future target candle close timestamp. Upon period completion, the engine automatically calculates:
-1. **Direction Hit Rate %**: Percentage of evaluated candles where predicted direction matched actual price delta direction.
-2. **Mean Absolute Error (MAE)**: Average point deviation between start price and actual close price vs predicted delta range.
-3. **Actionable Setup Win Rate %**: Accuracy rate specifically for setups approved by the Deterministic Policy Engine.
 

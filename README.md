@@ -23,72 +23,44 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 
 ---
 
-## 📐 End-to-End System Architecture
+## 📐 System Pipeline Architecture
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant Client as REST Client / HFT Daemon
-    participant Predictor as System One AI Engine (src/predictor.js)
-    participant LLM as Multi-Provider LLM (src/llm_engine.js)
-    participant Policy as Deterministic Guardrails ("Code Decides")
-    participant DB as SQLite Telemetry DB (src/database.js)
-
-    Client->>Predictor: POST /api/v1/predict (TelemetryInputState JSON)
-    Note over Predictor: 1. Ingest 10-Candle Deltas, RSI Divergence & Spread Status
-    Predictor->>Predictor: Build Rich State Payload JSON
-    Predictor->>LLM: askSystemOneJev(statePayload)
-    
-    alt Neural Model Available (Gemini / Qwen 3.8 / Cloud)
-        LLM-->>Predictor: Returns 6 Parallel Neural Judgments JSON
-    else Connection Timeout / Local Offline
-        LLM-->>Predictor: Fallback to Quantitative Calibrated Predictor
+flowchart TD
+    subgraph Layer1 [1. Telemetry Ingestion]
+        A["Market Quotes, 10-Candle M15 Deltas & Multi-TF Technicals"]
     end
 
-    Note over Predictor: 2. Map Granular Thresholds & ATR Delta Ranges
-    Predictor->>Policy: Evaluate Guardrail Matrix (Confidence, Toxicity, Range Wall, ADR)
-    
-    alt Hard Veto Triggered (e.g., Model Confidence < 70%)
-        Policy-->>Predictor: isTradeVetoed = true (Verdict: VETO_LOW_CONFIDENCE_CHOP)
-    else Confluence Passed
-        Policy-->>Predictor: isTradeVetoed = false (Verdict: APPROVED_TRADE_EXECUTION)
+    subgraph Layer2 [2. Neural System One Reasoning]
+        B["LLM Query (6 Parallel Judgments)"]
     end
 
-    Predictor->>DB: insertPrediction(predictionPayload)
-    Predictor-->>Client: Returns 200 OK (PredictionResultPayload JSON)
-    
-    Note over DB: 3. Target Candle Close Evaluation
-    Client->>Predictor: POST /api/v1/evaluate (actualClosePrice)
-    Predictor->>DB: evaluatePrediction(id, actualClosePrice)
-    Note over DB: Computes Direction Hit Rate % & Mean Absolute Error (MAE)
+    subgraph Layer3 [3. Deterministic Guardrails ("Code Decides")]
+        C{"Policy Engine Matrix"}
+        D["Hard Veto (Blocked)"]
+        E["Soft Warnings (Visual Alert)"]
+        F["Approved Trade Signal"]
+    end
+
+    subgraph Layer4 [4. Closed-Loop Telemetry]
+        G[("SQLite DB & Accuracy Evaluator")]
+    end
+
+    Layer1 --> Layer2
+    Layer2 --> C
+    C -->|Low Confidence / Toxicity| D
+    C -->|Macro News Proximity| E
+    C -->|High Confluence| F
+    D --> Layer4
+    E --> Layer4
+    F --> Layer4
 ```
 
-### High-Level System Pipeline Graph
-```
-+-----------------------------------------------------------------------------------+
-|                              INPUT TELEMETRY LAYER                                |
-|  - 10-Candle M15 Delta Sequences  - Multi-TF RSI/ATR  - Volume Profile (POC/VAH/VAL)|
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-|                        NEURAL SYSTEM ONE JUDGMENT LAYER                           |
-|       (6 Parallel Neural Judgments via Gemini / Local Qwen 3.8 27B / TypeSafe)    |
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-|                    DETERMINISTIC POLICY ENGINE ("Code Decides")                   |
-|     (Hard Veto Matrix: Low Confidence, Toxicity, Overstretch, Range Ceiling)       |
-|     (Soft Gate Layer: Visual News Proximity & Account Drawdown Warning Cards)     |
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-|                            EVALUATED OUTPUT & TELEMETRY                           |
-|   (SQLite Persistence, Direction Hit Rate %, Mean Absolute Error [MAE] Analytics) |
-+-----------------------------------------------------------------------------------+
-```
+### Pipeline Overview
+- **Layer 1 (Telemetry Ingestion)**: Aggregates real-time bid quotes, 10-candle M15 delta sequences, RSI divergence, ATR squeeze ratios, and account drawdown context into a rich state payload.
+- **Layer 2 (Neural System One)**: Multi-provider neural engine (Gemini / Local Qwen 3.8 27B / TypeSafe Cloud) evaluates 6 parallel mathematical judgments.
+- **Layer 3 (Deterministic Guardrails)**: Safety policy rules enforce non-negotiable **Hard Vetoes** (blocking trades on low confidence or order flow toxicity) while rendering **Soft Warnings** visually for macro news releases.
+- **Layer 4 (Closed-Loop Telemetry)**: Logs predictions to an embedded SQLite database and evaluates direction hit rate % and Mean Absolute Error (MAE) against target candle close prices.
 
 ---
 
@@ -149,7 +121,7 @@ Starts Express server on `http://localhost:3000`.
 
 ---
 
-## 📡 REST API Reference & Canonical Schemas
+## 📡 REST API Reference & Schemas
 
 ### `POST /api/v1/predict`
 Executes System One prediction and policy evaluation against provided market state telemetry.
