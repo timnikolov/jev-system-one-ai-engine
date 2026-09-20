@@ -27,22 +27,22 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 [1. Telemetry Ingestion]
+    subgraph Layer1 ["1. Telemetry Ingestion"]
         A["Market Quotes, 10-Candle M15 Deltas & Multi-TF Technicals"]
     end
 
-    subgraph Layer2 [2. Neural System One Reasoning]
+    subgraph Layer2 ["2. Neural System One Reasoning"]
         B["LLM Query (6 Parallel Judgments)"]
     end
 
-    subgraph Layer3 [3. Deterministic Guardrails ("Code Decides")]
+    subgraph Layer3 ["3. Deterministic Guardrails ('Code Decides')"]
         C{"Policy Engine Matrix"}
         D["Hard Veto (Blocked)"]
         E["Soft Warnings (Visual Alert)"]
         F["Approved Trade Signal"]
     end
 
-    subgraph Layer4 [4. Closed-Loop Telemetry]
+    subgraph Layer4 ["4. Closed-Loop Telemetry"]
         G[("SQLite DB & Accuracy Evaluator")]
     end
 
