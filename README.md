@@ -19,7 +19,25 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 2. **"Code Decides" Deterministic Policy Engine**: Jev provides neural judgments, but deterministic JavaScript policy code enforces hard vetoes (blocking execution during low confidence, high order flow toxicity, or range resistance walls).
 3. **Soft vs Hard Veto Gate Layer**: Differentiates between non-negotiable execution blocks (hard vetoes) and visual risk alerts (soft warnings for macro economic news proximity and account drawdown).
 4. **Brokerage-Agnostic Telemetry Ingestion**: Integrates real-time market data across trading providers (Interactive Brokers, FIX API, cTrader, Tradovate, Binance), ingesting 10-candle M15 sequences, multi-timeframe RSI/ATR analytics, Volume Profile (POC/VAH/VAL) boundaries, and EMA stack alignments into a clean input state payload.
-5. **Closed-Loop Quantitative Accuracy Evaluator**: Automatically logs predictions to an embedded SQLite database and evaluates direction hit rates and Mean Absolute Error (MAE) against actual market close prices.
+5. **Out-of-the-Box Monitoring Dashboard**: Includes a built-in slate dark theme UI dashboard (`http://localhost:3000`) for real-time monitoring of Jev predictions, policy verdicts, 6 parallel judgments, raw input telemetry JSON, and closed-loop hit rate evaluation.
+
+---
+
+## 🖥️ Built-in Real-Time Monitoring Dashboard
+
+The repository includes a standalone slate dark-theme UI dashboard served out of the box when running `npm start`.
+
+- **Live Prediction Banner**: Visualizes predicted direction, ATR-relative point range, Jev directional score, and active market regime.
+- **Policy Verdict & Guardrails**: Displays deterministic policy decisions (`APPROVED_TRADE_EXECUTION` vs `VETO_LOW_CONFIDENCE_CHOP`) alongside soft warning alerts (economic CPI news freeze window & account drawdown warnings).
+- **6 Parallel Judgments Inspector**: Displays real-time breakdown of all 6 mathematical judgments output by Jev.
+- **Telemetry State JSON Inspector**: Interactive viewer inspecting `richStatePayload` sent into Jev.
+- **Accuracy Benchmarks & Log**: Real-time counter of total evaluated predictions, Direction Hit Rate %, Mean Absolute Error (MAE), and closed-loop hit/miss prediction history table.
+
+```bash
+# Start server and access dashboard:
+npm start
+# Open http://localhost:3000 in your browser
+```
 
 ---
 
@@ -106,12 +124,11 @@ cd jev-system-one-ai-engine
 npm install
 ```
 
-### 2. Configure Environment (Optional)
-Copy `config.example.json` to `config.json` to supply your configuration:
+### 2. Start Dashboard & REST API Server
 ```bash
-cp config.example.json config.json
+npm start
 ```
-*Note: If no remote/local LLM endpoint is active, Jev automatically utilizes its built-in calibrated quantitative fallback predictor.*
+Starts Express server & live monitoring dashboard at **`http://localhost:3000`**.
 
 ---
 
@@ -128,12 +145,6 @@ npm run demo
 npm run test:policy
 ```
 *Demonstrates hard veto triggers (low confidence, ADR exhaustion overstretch) vs visual soft gate warnings (CPI news freeze, drawdown alert).*
-
-### Start REST API Server
-```bash
-npm start
-```
-Starts Express server on `http://localhost:3000`.
 
 ---
 
@@ -215,9 +226,11 @@ jev-system-one-ai-engine/
 ├── examples/
 │   ├── run_prediction.js        # Executable System One Demo Script
 │   └── test_policy_engine.js    # Policy Veto & Soft Warnings Test Suite
+├── public/
+│   └── index.html               # Real-Time Slate Dark Theme Dashboard UI
 ├── src/
 │   ├── database.js              # SQLite Telemetry Persistence & Evaluator
-│   ├── index.js                 # Express REST API Server
+│   ├── index.js                 # Express REST API Server & Dashboard Host
 │   ├── llm_engine.js            # Multi-Provider Routing
 │   ├── predictor.js            # System One AI Predictor & Deterministic Policy Engine
 │   └── types.js                 # JSDoc Schema & Type Definitions

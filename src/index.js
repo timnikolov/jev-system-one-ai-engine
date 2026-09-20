@@ -1,18 +1,24 @@
 /**
  * @file index.js
- * @description Express REST API Server for TypeSafe Jev System One AI Engine
+ * @description Express REST API Server & Out-of-the-Box UI Dashboard for TypeSafe Jev System One AI Engine
  */
 
 import express from 'express';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { runTypeSafeJevPrediction, evaluatePendingPredictions, getLastJevInputPayload } from './predictor.js';
 import { getPredictionsHistory, getAccuracyStats } from './database.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// Serve Dashboard Static UI Files
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Healthcheck Endpoint
 app.get('/health', (req, res) => {
@@ -73,7 +79,7 @@ app.post('/api/v1/evaluate', (req, res) => {
 // Start Server if run directly
 if (process.argv[1].endsWith('index.js')) {
   app.listen(PORT, () => {
-    console.log(`🚀 [TypeSafe Jev AI Engine] REST Server listening on http://localhost:${PORT}`);
+    console.log(`🚀 [TypeSafe Jev AI Engine] REST Server & Dashboard listening on http://localhost:${PORT}`);
   });
 }
 

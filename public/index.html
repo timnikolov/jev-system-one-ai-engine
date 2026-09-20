@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TypeSafe Jev System One AI Engine — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #0b0f19;
+      --bg-card: #151c2e;
+      --bg-card-hover: #1e293b;
+      --border-color: #243049;
+      --accent-blue: #38bdf8;
+      --accent-green: #34d399;
+      --accent-red: #f87171;
+      --accent-yellow: #facc15;
+      --accent-purple: #c4b5fd;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      line-height: 1.5;
+      padding: 24px;
+      min-height: 100vh;
+    }
+
+    /* Header */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      margin-bottom: 24px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand-logo {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #0284c7, #6366f1);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+    .brand-title h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      color: var(--text-main);
+    }
+    .brand-title p {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .btn {
+      background-color: var(--accent-blue);
+      color: #0f172a;
+      border: none;
+      padding: 10px 18px;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn:hover {
+      filter: brightness(1.1);
+      transform: translateY(-1px);
+    }
+
+    /* Grid Layout */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 20px;
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    /* Primary Prediction Banner */
+    .col-span-8 { grid-column: span 8; }
+    .col-span-4 { grid-column: span 4; }
+    .col-span-12 { grid-column: span 12; }
+
+    .prediction-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .dir-badge {
+      font-family: var(--font-mono);
+      font-weight: 800;
+      font-size: 16px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      text-transform: uppercase;
+    }
+    .dir-bullish { background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.4); }
+    .dir-bearish { background: rgba(248, 113, 113, 0.15); color: var(--accent-red); border: 1px solid rgba(248, 113, 113, 0.4); }
+    .dir-neutral { background: rgba(148, 163, 184, 0.15); color: var(--text-muted); border: 1px solid rgba(148, 163, 184, 0.4); }
+
+    .metric-group {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .metric-item {
+      background: rgba(15, 23, 42, 0.5);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+    .metric-val { font-size: 18px; font-weight: 800; font-family: var(--font-mono); }
+
+    /* Policy Verdict Card */
+    .verdict-box {
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+    .verdict-approved { background: rgba(52, 211, 153, 0.1); border: 1px solid rgba(52, 211, 153, 0.3); color: var(--accent-green); }
+    .verdict-vetoed { background: rgba(248, 113, 113, 0.1); border: 1px solid rgba(248, 113, 113, 0.3); color: var(--accent-red); }
+
+    /* 6 Judgments Grid */
+    .judgments-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .judgment-card {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .judgment-title { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
+    .judgment-val { font-size: 16px; font-weight: 800; font-family: var(--font-mono); }
+
+    /* History Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 13px;
+      text-align: left;
+    }
+    th {
+      color: var(--text-muted);
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 11px;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    td {
+      padding: 12px;
+      border-bottom: 1px solid rgba(36, 48, 73, 0.5);
+      font-family: var(--font-mono);
+    }
+
+    /* JSON Viewer */
+    pre {
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 14px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--accent-blue);
+      overflow-x: auto;
+      max-height: 260px;
+    }
+
+    @media (max-width: 1024px) {
+      .col-span-8, .col-span-4 { grid-column: span 12; }
+      .metric-group { grid-template-columns: repeat(2, 1fr); }
+      .judgments-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <div class="brand-logo">🧠</div>
+      <div class="brand-title">
+        <h1>TypeSafe System One Jev AI Predictor</h1>
+        <p>Predictive Neural Engine & Deterministic Guardrails ("Code Decides")</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn" id="run-btn" onclick="runLivePrediction()">⚡ Run Live Prediction</button>
+    </div>
+  </header>
+
+  <div class="dashboard-grid">
+
+    <!-- Primary Active Prediction Banner -->
+    <div class="card col-span-8">
+      <div class="card-title">
+        <span>Active M15 Candle Prediction</span>
+        <span id="pred-source" style="font-family: var(--font-mono); color: var(--accent-blue);">TYPESAFE_CLOUD_JEV</span>
+      </div>
+
+      <div class="prediction-header">
+        <div>
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">Target Candle Instrument</div>
+          <div style="font-size: 20px; font-weight: 800;" id="symbol-display">USTEC (US Tech 100 Index Futures)</div>
+        </div>
+        <div class="dir-badge dir-bullish" id="direction-badge">BULLISH UP (+26 to +77 pts)</div>
+      </div>
+
+      <div class="metric-group">
+        <div class="metric-item">
+          <div class="metric-label">Jev Direction Score</div>
+          <div class="metric-val" id="val-score" style="color: var(--accent-green);">4.2 / 5.0</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Neural Confidence</div>
+          <div class="metric-val" id="val-confidence">88%</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Market Regime</div>
+          <div class="metric-val" id="val-regime" style="font-size: 14px;">STRONG_BULL_EXPANSION</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Baseline Start Bid</div>
+          <div class="metric-val" id="val-bid">19,850.50</div>
+        </div>
+      </div>
+
+      <div class="verdict-box verdict-approved" id="policy-box">
+        <div style="font-weight: 800; font-size: 14px; margin-bottom: 4px;" id="verdict-title">⚖️ Policy Verdict: APPROVED_TRADE_EXECUTION</div>
+        <div id="verdict-desc">High Confluence Setup Passed. Setup Actionability: <b>YES - Bullish Setup (75% Conviction | Quality 4.0/5.0)</b></div>
+        <div id="soft-warnings" style="margin-top: 8px; font-size: 12px; color: var(--accent-yellow);">Soft Warnings: NEWS: HIGH_IMPACT_NEWS_PROXIMITY (US Core CPI YoY)</div>
+      </div>
+    </div>
+
+    <!-- Quantitative Accuracy Benchmarks -->
+    <div class="card col-span-4">
+      <div class="card-title">Accuracy Benchmarks</div>
+      
+      <div style="display: flex; flex-direction: column; gap: 16px;">
+        <div class="metric-item">
+          <div class="metric-label">Evaluated Predictions</div>
+          <div class="metric-val" id="acc-total">124</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Direction Hit Rate %</div>
+          <div class="metric-val" id="acc-hitrate" style="color: var(--accent-green);">74.2%</div>
+        </div>
+        <div class="metric-item">
+          <div class="metric-label">Mean Absolute Error (MAE)</div>
+          <div class="metric-val" id="acc-mae" style="color: var(--accent-blue);">14.8 pts</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 6 Parallel Neural Judgments Grid -->
+    <div class="card col-span-12">
+      <div class="card-title">Jev 6 Parallel Neural Judgments Inspector</div>
+      <div class="judgments-grid">
+        <div class="judgment-card">
+          <div class="judgment-title">1. Directional Conviction Score</div>
+          <div class="judgment-val" id="j-score" style="color: var(--accent-green);">4.2 / 5.0</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Scale: 1.0 (Bear) to 5.0 (Bull)</div>
+        </div>
+        <div class="judgment-card">
+          <div class="judgment-title">2. Model Confidence</div>
+          <div class="judgment-val" id="j-conf">88%</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Safety Cutoff: >= 70%</div>
+        </div>
+        <div class="judgment-card">
+          <div class="judgment-title">3. Market Regime</div>
+          <div class="judgment-val" id="j-regime" style="font-size: 14px; color: var(--accent-purple);">STRONG_BULL_EXPANSION</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Classification Mode</div>
+        </div>
+        <div class="judgment-card">
+          <div class="judgment-title">4. Signal Quality Rating</div>
+          <div class="judgment-val" id="j-quality" style="color: var(--accent-green);">4.0 / 5.0</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Technical Confluence</div>
+        </div>
+        <div class="judgment-card">
+          <div class="judgment-title">5. Order Flow Toxicity Prob</div>
+          <div class="judgment-val" id="j-toxic" style="color: var(--accent-blue);">15%</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Safety Cutoff: < 55%</div>
+        </div>
+        <div class="judgment-card">
+          <div class="judgment-title">6. Regime Transition Prob</div>
+          <div class="judgment-val" id="j-transition">20%</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px;">Changepoint Probability</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Telemetry Input State JSON Inspector -->
+    <div class="card col-span-6">
+      <div class="card-title">Jev Input Telemetry Inspector (richStatePayload)</div>
+      <pre id="json-inspector">Loading telemetry JSON state...</pre>
+    </div>
+
+    <!-- Historical Predictions Table -->
+    <div class="card col-span-6">
+      <div class="card-title">Prediction Log & Closed-Loop Evaluator</div>
+      <div style="overflow-x: auto; max-height: 260px;">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Score</th>
+              <th>Direction</th>
+              <th>Verdict</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="history-rows">
+            <tr><td colspan="5" style="text-align: center; color: var(--text-muted);">Fetching history...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    async function fetchAccuracy() {
+      try {
+        const res = await fetch('/api/v1/accuracy');
+        const data = await res.json();
+        if (data.success && data.stats) {
+          document.getElementById('acc-total').innerText = data.stats.totalEvaluated || 0;
+          document.getElementById('acc-hitrate').innerText = `${data.stats.directionHitRatePct || 0}%`;
+          document.getElementById('acc-mae').innerText = `${data.stats.meanAbsoluteErrorPts || 0} pts`;
+        }
+      } catch (e) {}
+    }
+
+    async function fetchHistory() {
+      try {
+        const res = await fetch('/api/v1/predictions?limit=10');
+        const data = await res.json();
+        if (data.success && Array.isArray(data.predictions)) {
+          const tbody = document.getElementById('history-rows');
+          if (data.predictions.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No predictions logged yet. Click "Run Live Prediction".</td></tr>';
+            return;
+          }
+          tbody.innerHTML = data.predictions.map(p => `
+            <tr>
+              <td>#${p.id}</td>
+              <td style="color: ${p.predicted_score >= 3.5 ? 'var(--accent-green)' : (p.predicted_score <= 2.5 ? 'var(--accent-red)' : 'var(--text-muted)')}; font-weight: 700;">${p.predicted_score}</td>
+              <td>${p.predicted_direction}</td>
+              <td style="font-size: 11px;">${p.policy_verdict}</td>
+              <td>${p.status === 'EVALUATED' ? (p.is_direction_hit ? '✅ HIT' : '❌ MISS') : '⏳ PENDING'}</td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {}
+    }
+
+    async function runLivePrediction() {
+      const btn = document.getElementById('run-btn');
+      btn.innerText = '⏳ Jev Thinking...';
+      btn.disabled = true;
+
+      try {
+        const sampleState = {
+          symbol: 'USTEC (US Tech 100 Index Futures)',
+          quote: { bid: 19850.50 + Math.random() * 5, ask: 19851.50, spread: 10.0, rsi: 64.2, macd: 12.5 },
+          positionsAnalysis: { atr: 42.5 },
+          recentCloses: [19810, 19815.5, 19822, 19828.4, 19835, 19832.1, 19840, 19844.5, 19848, 19850.5],
+          account: { balance: 25000, equity: 24850 },
+          macroEvents: [{ title: 'US Core CPI YoY', time: '14:30', impact: 'HIGH' }]
+        };
+
+        const res = await fetch('/api/v1/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(sampleState)
+        });
+
+        const data = await res.json();
+        if (data.success && data.prediction) {
+          const p = data.prediction;
+          document.getElementById('pred-source').innerText = p.predictionSource;
+          document.getElementById('val-score').innerText = `${p.predictedScore} / 5.0`;
+          document.getElementById('val-confidence').innerText = `${Math.round(p.confidence * 100)}%`;
+          document.getElementById('val-regime').innerText = p.marketRegime;
+          document.getElementById('val-bid').innerText = p.startPrice.toLocaleString();
+          document.getElementById('direction-badge').innerText = `${p.predictedDirection} (${p.predictedDeltaRange})`;
+
+          const badge = document.getElementById('direction-badge');
+          badge.className = `dir-badge ${p.predictedScore >= 3.5 ? 'dir-bullish' : (p.predictedScore <= 2.5 ? 'dir-bearish' : 'dir-neutral')}`;
+
+          const pBox = document.getElementById('policy-box');
+          pBox.className = `verdict-box ${p.isTradeVetoed ? 'verdict-vetoed' : 'verdict-approved'}`;
+          document.getElementById('verdict-title').innerText = `⚖️ Policy Verdict: ${p.policyVerdict}`;
+          document.getElementById('verdict-desc').innerHTML = `${p.policyGateReason}. Actionability: <b>${p.actionableSetup}</b>`;
+          document.getElementById('soft-warnings').innerText = `Soft Warnings: ${p.softGateWarnings}`;
+
+          document.getElementById('j-score').innerText = `${p.predictedScore} / 5.0`;
+          document.getElementById('j-conf').innerText = `${Math.round(p.confidence * 100)}%`;
+          document.getElementById('j-regime').innerText = p.marketRegime;
+          document.getElementById('j-quality').innerText = `${p.signalQualityScore} / 5.0`;
+          document.getElementById('j-toxic').innerText = `${Math.round(p.marketToxicityProb * 100)}%`;
+          document.getElementById('j-transition').innerText = `${Math.round(p.regimeTransitionProb * 100)}%`;
+
+          if (data.lastInput) {
+            document.getElementById('json-inspector').innerText = JSON.stringify(data.lastInput, null, 2);
+          }
+        }
+      } catch (e) {
+        alert('Error triggering prediction: ' + e.message);
+      } finally {
+        btn.innerText = '⚡ Run Live Prediction';
+        btn.disabled = false;
+        fetchAccuracy();
+        fetchHistory();
+      }
+    }
+
+    // Init load
+    fetchAccuracy();
+    fetchHistory();
+  </script>
+</body>
+</html>
