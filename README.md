@@ -1,5 +1,5 @@
 # 🧠 TypeSafe Jev System One AI Engine
-> **Multi-Provider 6-Judgment Predictive Engine & Deterministic Guardrail Policy System for Quantitative Financial Trading**
+> **Predictive Neural Engine & Deterministic Guardrail Policy System for Quantitative Financial Trading**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Node.js Version](https://img.shields.io/badge/node-%3E%3D18.0.0-brightgreen.svg)](https://nodejs.org/)
@@ -12,64 +12,80 @@
 
 The **TypeSafe Jev System One AI Engine** is an enterprise-grade AI decision engine designed for high-frequency financial market prediction (US Tech 100 / USTEC Index Futures). 
 
-In live algorithmic trading, relying solely on unstructured LLM outputs introduces critical risks: **hallucinations, non-deterministic outputs, and lack of risk control**. This project demonstrates a production-grade **Hybrid AI Architecture**: combining high-velocity neural reasoning (**System One LLM**) with deterministic safety guardrails (**Code Decides Policy Engine**).
+In live algorithmic trading, relying solely on unstructured LLM outputs introduces critical risks: **hallucinations, non-deterministic outputs, and lack of risk control**. This project demonstrates a production-grade **Hybrid AI Architecture**: combining high-velocity neural reasoning (**TypeSafe System One Jev AI Predictor**) with deterministic safety guardrails (**Code Decides Policy Engine**).
 
 ### 🎯 Key Product Innovations
-1. **6 Parallel Neural Judgments Pattern**: Instead of asking an LLM for a binary trade signal, the engine queries the model for 6 structured mathematical judgments (Directional Score, Confidence, Regime Classification, Signal Quality, Order Flow Toxicity, and Regime Transition Probability).
-2. **"Code Decides" Deterministic Policy Engine**: System One outputs scores, but deterministic JavaScript policy code enforces hard vetoes (blocking execution during low confidence, high order flow toxicity, or range resistance walls).
+1. **Jev 6 Parallel Neural Judgments Pattern**: Instead of asking an LLM for an unstructured trade call, Jev evaluates the full market state and outputs 6 structured mathematical judgments (Directional Score, Model Confidence, Regime Classification, Signal Confluence Quality, Order Flow Toxicity Probability, and Regime Transition Probability).
+2. **"Code Decides" Deterministic Policy Engine**: Jev provides neural judgments, but deterministic JavaScript policy code enforces hard vetoes (blocking execution during low confidence, high order flow toxicity, or range resistance walls).
 3. **Soft vs Hard Veto Gate Layer**: Differentiates between non-negotiable execution blocks (hard vetoes) and visual risk alerts (soft warnings for macro economic news proximity and account drawdown).
-4. **Ground-Truth Multi-Horizon Telemetry**: Ingests 10-candle M15 sequences, multi-timeframe RSI/ATR analytics, Volume Profile (POC/VAH/VAL) boundaries, and moving average stack alignments.
+4. **Ground-Truth Multi-Horizon Telemetry Transformation**: Collects and transforms raw market quotes, 10-candle M15 sequences, multi-timeframe RSI/ATR analytics, Volume Profile (POC/VAH/VAL) boundaries, and EMA stack alignments into a clean input state payload for Jev.
 5. **Closed-Loop Quantitative Accuracy Evaluator**: Automatically logs predictions to an embedded SQLite database and evaluates direction hit rates and Mean Absolute Error (MAE) against actual market close prices.
 
 ---
 
-## 📐 System Pipeline Architecture
+## 📐 End-to-End System Pipeline Architecture
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 ["1. Telemetry Ingestion"]
-        A["Market Quotes, 10-Candle M15 Deltas & Multi-TF Technicals"]
+    subgraph Step1 ["1. Telemetry Collection"]
+        A["MT5 Market Quotes (Bid/Ask/Spread)<br/>Account Equity & Macro Calendar Events"]
     end
 
-    subgraph Layer2 ["2. Neural System One Reasoning"]
-        B["LLM Query (6 Parallel Judgments)"]
+    subgraph Step2 ["2. Indicator & Sequence Transformation"]
+        B["10-Candle M15 Delta Sequences, Multi-TF RSI/ATR,<br/>Volume Profile (POC/VAH/VAL) & EMA Stack Alignments"]
     end
 
-    subgraph Layer3 ["3. Deterministic Guardrails ('Code Decides')"]
-        C{"Policy Engine Matrix"}
-        D["Hard Veto (Blocked)"]
-        E["Soft Warnings (Visual Alert)"]
-        F["Approved Trade Signal"]
+    subgraph Step3 ["3. Input Payload to Jev"]
+        C["Synchronized State Payload JSON"]
     end
 
-    subgraph Layer4 ["4. Closed-Loop Telemetry"]
-        G[("SQLite DB & Accuracy Evaluator")]
+    subgraph Step4 ["4. TypeSafe System One Jev AI Predictor"]
+        D["Jev Neural Inference (6 Parallel Judgments):<br/>- Candle Directional Score (1.0 to 5.0)<br/>- Model Confidence (0.50 to 0.95)<br/>- Market Regime Classification<br/>- Signal Quality Rating (1.0 to 5.0)<br/>- Order Flow Toxicity Prob (0.0 to 1.0)<br/>- Regime Transition Prob (0.0 to 1.0)"]
     end
 
-    Layer1 --> Layer2
-    Layer2 --> C
-    C -->|Low Confidence / Toxicity| D
-    C -->|Macro News Proximity| E
-    C -->|High Confluence| F
-    D --> Layer4
-    E --> Layer4
-    F --> Layer4
+    subgraph Step5 ["5. Deterministic Guardrails ('Code Decides')"]
+        E{"Safety Policy Engine"}
+        F["Hard Veto (Execution Blocked)<br/>Low Confidence / Toxicity / Range Ceiling"]
+        G["Soft Warnings (Visual Alert)<br/>High-Impact News Proximity / Drawdown"]
+    end
+
+    subgraph Step6 ["6. Final Trade Recommendation & Conviction"]
+        H["Output Verdict & Conviction Probability %<br/>e.g., YES - Bullish Setup (75% Conviction | Quality 4/5)<br/>or NO - VETO_LOW_CONFIDENCE_CHOP"]
+    end
+
+    subgraph Step7 ["7. Telemetry & Accuracy Evaluation"]
+        I[("SQLite Database<br/>Direction Hit Rate % & MAE Analytics")]
+    end
+
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    Step4 --> E
+    E -->|Veto Triggered| F
+    E -->|News Warning| G
+    E -->|Approved| H
+    F --> H
+    G --> H
+    H --> Step7
 ```
 
-### Pipeline Overview
-- **Layer 1 (Telemetry Ingestion)**: Aggregates real-time bid quotes, 10-candle M15 delta sequences, RSI divergence, ATR squeeze ratios, and account drawdown context into a rich state payload.
-- **Layer 2 (Neural System One)**: Multi-provider neural engine (Gemini / Local Qwen 3.8 27B / TypeSafe Cloud) evaluates 6 parallel mathematical judgments.
-- **Layer 3 (Deterministic Guardrails)**: Safety policy rules enforce non-negotiable **Hard Vetoes** (blocking trades on low confidence or order flow toxicity) while rendering **Soft Warnings** visually for macro news releases.
-- **Layer 4 (Closed-Loop Telemetry)**: Logs predictions to an embedded SQLite database and evaluates direction hit rate % and Mean Absolute Error (MAE) against target candle close prices.
+### Complete Pipeline Trace
+1. **Telemetry Collection**: Collects live market quotes (Bid, Ask, Spread), MT5 open account equity/drawdown, and economic news calendar events.
+2. **Indicator & Sequence Transformation**: Synchronizes 10-candle M15 price deltas, multi-timeframe RSI (M15/H1/H4/D1), Volume Profile POC/VAH/VAL walls, ATR expansion ratios, and 21/50/55/89/200 EMA stack alignments.
+3. **Input Payload to Jev**: Formats all transformed indicators into a rich, structured JSON state payload.
+4. **Jev Neural Inference**: **TypeSafe System One Jev AI Predictor** performs deep neural reasoning to output 6 parallel mathematical judgments.
+5. **Deterministic Guardrails ("Code Decides")**: Policy rules evaluate Jev's output — triggering **Hard Vetoes** (blocking trades when confidence < 70% or toxicity >= 55%) or rendering **Soft Warnings** (visual warnings for macro news releases).
+6. **Final Trade Recommendation & Conviction**: Generates final actionable verdict with continuous conviction probability % (e.g. `YES - Bullish Setup (75% Conviction | Quality 4.0/5.0)`).
+7. **Telemetry & Accuracy Evaluation**: Stores prediction record in embedded SQLite DB and evaluates direction hit rate % and Mean Absolute Error (MAE) when the target candle closes.
 
 ---
 
-## 📋 6 Parallel Neural Judgments Specification
+## 📋 Jev 6 Parallel Neural Judgments Specification
 
 | Judgment Field | Type | Scale / Enum | Product Definition |
 |---|---|---|---|
 | `candle_score` | Float | `1.0` to `5.0` | Directional conviction (`1.0` = Extreme Bear, `3.0` = Neutral, `5.0` = Extreme Bull). |
-| `confidence` | Float | `0.50` to `0.95` | Neural model conviction in technical setup. |
+| `confidence` | Float | `0.50` to `0.95` | Jev model conviction in technical setup. |
 | `regime` | Enum | `STRONG_BULL_EXPANSION` \| `STRONG_BEAR_EXPANSION` \| `RANGE_ACCUMULATION_ZONE_A` \| `HIGH_VOLATILITY_CHOP` | Market regime classification. |
 | `signal_quality` | Float | `1.0` to `5.0` | Technical confluence rating across timeframes. |
 | `is_market_toxic` | Float | `0.0` to `1.0` | Probability of toxic order flow / manipulative wick sweeps. |
@@ -91,11 +107,11 @@ npm install
 ```
 
 ### 2. Configure Environment (Optional)
-Copy `config.example.json` to `config.json` to supply your API keys:
+Copy `config.example.json` to `config.json` to supply your configuration:
 ```bash
 cp config.example.json config.json
 ```
-*Note: If no API key or local LLM endpoint is available, the engine automatically uses its built-in calibrated quantitative fallback predictor.*
+*Note: If no remote/local LLM endpoint is active, Jev automatically utilizes its built-in calibrated quantitative fallback predictor.*
 
 ---
 
@@ -105,7 +121,7 @@ cp config.example.json config.json
 ```bash
 npm run demo
 ```
-*Outputs complete 6-judgment neural inference, state snapshot, soft warnings, and policy verdict.*
+*Outputs complete Jev 6-judgment neural inference, state snapshot, soft warnings, policy verdict, and trade recommendation.*
 
 ### Test Deterministic Policy Guardrails Suite
 ```bash
@@ -124,7 +140,7 @@ Starts Express server on `http://localhost:3000`.
 ## 📡 REST API Reference & Schemas
 
 ### `POST /api/v1/predict`
-Executes System One prediction and policy evaluation against provided market state telemetry.
+Executes System One Jev prediction and policy evaluation against provided market state telemetry.
 
 **Request Payload Example (`TelemetryInputState`):**
 ```json
@@ -202,7 +218,7 @@ jev-system-one-ai-engine/
 ├── src/
 │   ├── database.js              # SQLite Telemetry Persistence & Evaluator
 │   ├── index.js                 # Express REST API Server
-│   ├── llm_engine.js            # Multi-Provider Routing (Gemini/OpenAI/Qwen/Cloud)
+│   ├── llm_engine.js            # Multi-Provider Routing
 │   ├── predictor.js            # System One AI Predictor & Deterministic Policy Engine
 │   └── types.js                 # JSDoc Schema & Type Definitions
 ├── .gitignore                   # Git Ignore Specification
@@ -219,7 +235,7 @@ jev-system-one-ai-engine/
 **Domain**: Quantitative Trading Systems, Generative AI Systems, Deterministic Safety Guardrails  
 **Product Strategy Highlights**:
 - **Risk Mitigation**: Replaced open-ended prompt generation with structured JSON schema constraints to eliminate hallucinated parameters.
-- **Safety First**: Decoupled LLM reasoning from trade execution. Neural judgments inform, but deterministic code policies decide.
+- **Safety First**: Decoupled LLM reasoning from trade execution. Jev's neural judgments inform, but deterministic code policies decide.
 - **Measurable Impact**: Embedded closed-loop quantitative evaluation directly in the DB schema to track model performance against ground-truth market outcomes.
 
 ---

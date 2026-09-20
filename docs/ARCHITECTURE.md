@@ -1,6 +1,6 @@
 # 🏗️ Technical Architecture & AI System Specification
 
-**TypeSafe Jev System One AI Engine** — Multi-Provider 6-Judgment Predictive Engine & Deterministic Policy Guardrail System for High-Frequency Quantitative Trading.
+**TypeSafe Jev System One AI Engine** — Predictive Neural Engine & Deterministic Policy Guardrail System for High-Frequency Quantitative Trading.
 
 ---
 
@@ -12,58 +12,77 @@ To solve this, the **TypeSafe Jev System One AI Engine** enforces a **Hybrid Dua
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 ["1. Telemetry Ingestion"]
-        A["Market Quotes, 10-Candle M15 Deltas & Multi-TF Technicals"]
+    subgraph Step1 ["1. Telemetry Collection"]
+        A["MT5 Market Quotes (Bid/Ask/Spread)<br/>Account Equity & Macro Calendar Events"]
     end
 
-    subgraph Layer2 ["2. Neural System One Reasoning"]
-        B["LLM Query (6 Parallel Judgments)"]
+    subgraph Step2 ["2. Indicator & Sequence Transformation"]
+        B["10-Candle M15 Delta Sequences, Multi-TF RSI/ATR,<br/>Volume Profile (POC/VAH/VAL) & EMA Stack Alignments"]
     end
 
-    subgraph Layer3 ["3. Deterministic Guardrails ('Code Decides')"]
-        C{"Policy Engine Matrix"}
-        D["Hard Veto (Blocked)"]
-        E["Soft Warnings (Visual Alert)"]
-        F["Approved Trade Signal"]
+    subgraph Step3 ["3. Input Payload to Jev"]
+        C["Synchronized State Payload JSON"]
     end
 
-    subgraph Layer4 ["4. Closed-Loop Telemetry"]
-        G[("SQLite DB & Accuracy Evaluator")]
+    subgraph Step4 ["4. TypeSafe System One Jev AI Predictor"]
+        D["Jev Neural Inference (6 Parallel Judgments):<br/>- Candle Directional Score (1.0 to 5.0)<br/>- Model Confidence (0.50 to 0.95)<br/>- Market Regime Classification<br/>- Signal Quality Rating (1.0 to 5.0)<br/>- Order Flow Toxicity Prob (0.0 to 1.0)<br/>- Regime Transition Prob (0.0 to 1.0)"]
     end
 
-    Layer1 --> Layer2
-    Layer2 --> C
-    C -->|Low Confidence / Toxicity| D
-    C -->|Macro News Proximity| E
-    C -->|High Confluence| F
-    D --> Layer4
-    E --> Layer4
-    F --> Layer4
+    subgraph Step5 ["5. Deterministic Guardrails ('Code Decides')"]
+        E{"Safety Policy Engine"}
+        F["Hard Veto (Execution Blocked)<br/>Low Confidence / Toxicity / Range Ceiling"]
+        G["Soft Warnings (Visual Alert)<br/>High-Impact News Proximity / Drawdown"]
+    end
+
+    subgraph Step6 ["6. Final Trade Recommendation & Conviction"]
+        H["Output Verdict & Conviction Probability %<br/>e.g., YES - Bullish Setup (75% Conviction | Quality 4/5)<br/>or NO - VETO_LOW_CONFIDENCE_CHOP"]
+    end
+
+    subgraph Step7 ["7. Telemetry & Accuracy Evaluation"]
+        I[("SQLite Database<br/>Direction Hit Rate % & MAE Analytics")]
+    end
+
+    Step1 --> Step2
+    Step2 --> Step3
+    Step3 --> Step4
+    Step4 --> E
+    E -->|Veto Triggered| F
+    E -->|News Warning| G
+    E -->|Approved| H
+    F --> H
+    G --> H
+    H --> Step7
 ```
 
 ---
 
-## 2. System Pipeline Breakdown
+## 2. Complete System Pipeline Breakdown
 
-1. **Layer 1: Telemetry Ingestion (`TelemetryInputState`)**
-   - Real-time bid quotes, 10-candle M15 delta sequences, RSI divergence detection, ATR squeeze ratios, and account drawdown context.
-2. **Layer 2: Neural System One Reasoning (`askSystemOneJev`)**
-   - Queries multi-provider LLM (Gemini / Local Qwen 3.8 27B / TypeSafe Cloud API) for 6 parallel mathematical judgments.
-3. **Layer 3: Deterministic Guardrails ("Code Decides")**
-   - Evaluates safety rules: blocks execution for low confidence, toxicity, or range ceiling walls (**Hard Vetoes**), while visually alerting users to economic news windows (**Soft Warnings**).
-4. **Layer 4: Closed-Loop Evaluation (`database.js`)**
-   - Stores telemetry JSON in embedded SQLite database and measures Direction Hit Rate % and Mean Absolute Error (MAE) against target candle close prices.
+1. **Step 1: Telemetry Collection (`TelemetryInputState`)**
+   - Collects real-time market quotes (Bid, Ask, Spread), MT5 live account balance/equity/margin, and macro economic news events.
+2. **Step 2: Indicator & Sequence Transformation**
+   - Transforms raw ticks into 10-candle M15 price deltas, multi-timeframe RSI (M15/H1/H4/D1), Volume Profile (POC/VAH/VAL) support/resistance walls, ATR expansion ratios, and 21/50/55/89/200 EMA stack alignments.
+3. **Step 3: State Payload Synthesis**
+   - Compiles all transformed indicators and sequence analytics into a clean, type-safe state JSON payload.
+4. **Step 4: TypeSafe System One Jev AI Predictor (`askSystemOneJev`)**
+   - **Jev** evaluates the full market state and outputs 6 parallel structured judgments: Directional Score, Model Confidence, Market Regime, Signal Quality Rating, Order Flow Toxicity Probability, and Regime Transition Probability.
+5. **Step 5: Deterministic Policy Engine ("Code Decides")**
+   - Evaluates safety rules against Jev's output — triggering **Hard Vetoes** (blocking execution when confidence < 70%, toxicity >= 55%, or range walls are hit) or rendering **Soft Warnings** (visual warning cards for macro news releases).
+6. **Step 6: Final Trade Recommendation & Conviction Output**
+   - Generates the final actionable recommendation with continuous conviction probability % (e.g. `YES - Bullish Setup (75% Conviction | Quality 4.0/5.0)` or `NO - VETO_LOW_CONFIDENCE_CHOP`).
+7. **Step 7: Closed-Loop Telemetry & Accuracy Evaluation (`database.js`)**
+   - Logs prediction records in embedded SQLite DB and measures Direction Hit Rate % and Mean Absolute Error (MAE) against target candle close prices.
 
 ---
 
-## 3. 6 Parallel Neural Judgments Specification
+## 3. Jev 6 Parallel Neural Judgments Specification
 
-Instead of requesting an unstructured text summary or a single binary trade decision, System One queries the LLM for **6 parallel structured judgments**:
+Instead of requesting an unstructured text summary or a single binary trade decision, Jev is queried for **6 parallel structured judgments**:
 
 | Judgment Symbol | Data Type | Scale / Enum | Product Definition & Purpose |
 |---|---|---|---|
 | `candle_score` | Continuous Score | `1.0` - `5.0` | Directional conviction for the next M15 candle (`1.0` = Extreme Bear, `3.0` = Neutral, `5.0` = Extreme Bull). |
-| `confidence` | Probability | `0.50` - `0.95` | Model's statistical certainty in its technical assessment. |
+| `confidence` | Probability | `0.50` - `0.95` | Jev model's statistical certainty in its technical assessment. |
 | `regime` | Categorical | `STRONG_BULL_EXPANSION` \| `STRONG_BEAR_EXPANSION` \| `RANGE_ACCUMULATION_ZONE_A` \| `HIGH_VOLATILITY_CHOP` | Active macro/micro market environment classification. |
 | `signal_quality` | Rating Score | `1.0` - `5.0` | Technical confluence rating evaluating structural alignment across indicators. |
 | `is_market_toxic` | Probability | `0.0` - `1.0` | Probability of order book toxicity, erratic chop, or institutional manipulative sweeps. |
