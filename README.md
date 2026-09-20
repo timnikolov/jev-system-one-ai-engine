@@ -18,7 +18,7 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 1. **Jev 6 Parallel Neural Judgments Pattern**: Instead of asking an LLM for an unstructured trade call, Jev evaluates the full market state and outputs 6 structured mathematical judgments (Directional Score, Model Confidence, Regime Classification, Signal Confluence Quality, Order Flow Toxicity Probability, and Regime Transition Probability).
 2. **"Code Decides" Deterministic Policy Engine**: Jev provides neural judgments, but deterministic JavaScript policy code enforces hard vetoes (blocking execution during low confidence, high order flow toxicity, or range resistance walls).
 3. **Soft vs Hard Veto Gate Layer**: Differentiates between non-negotiable execution blocks (hard vetoes) and visual risk alerts (soft warnings for macro economic news proximity and account drawdown).
-4. **Ground-Truth Multi-Horizon Telemetry Transformation**: Collects and transforms raw market quotes, 10-candle M15 sequences, multi-timeframe RSI/ATR analytics, Volume Profile (POC/VAH/VAL) boundaries, and EMA stack alignments into a clean input state payload for Jev.
+4. **Brokerage-Agnostic Telemetry Ingestion**: Integrates real-time market data across trading providers (Interactive Brokers, FIX API, cTrader, Tradovate, Binance), ingesting 10-candle M15 sequences, multi-timeframe RSI/ATR analytics, Volume Profile (POC/VAH/VAL) boundaries, and EMA stack alignments into a clean input state payload.
 5. **Closed-Loop Quantitative Accuracy Evaluator**: Automatically logs predictions to an embedded SQLite database and evaluates direction hit rates and Mean Absolute Error (MAE) against actual market close prices.
 
 ---
@@ -28,7 +28,7 @@ In live algorithmic trading, relying solely on unstructured LLM outputs introduc
 ```mermaid
 flowchart TD
     subgraph Step1 ["1. Telemetry Collection"]
-        A["MT5 Market Quotes (Bid/Ask/Spread)<br/>Account Equity & Macro Calendar Events"]
+        A["Market Quotes (Bid/Ask/Spread)<br/>Account Equity & Macro Calendar Events"]
     end
 
     subgraph Step2 ["2. Indicator & Sequence Transformation"]
@@ -70,7 +70,7 @@ flowchart TD
 ```
 
 ### Complete Pipeline Trace
-1. **Telemetry Collection**: Collects live market quotes (Bid, Ask, Spread), MT5 open account equity/drawdown, and economic news calendar events.
+1. **Telemetry Collection**: Collects live market quotes (Bid, Ask, Spread) from any trading provider API, account equity/drawdown, and economic news calendar events.
 2. **Indicator & Sequence Transformation**: Synchronizes 10-candle M15 price deltas, multi-timeframe RSI (M15/H1/H4/D1), Volume Profile POC/VAH/VAL walls, ATR expansion ratios, and 21/50/55/89/200 EMA stack alignments.
 3. **Input Payload to Jev**: Formats all transformed indicators into a rich, structured JSON state payload.
 4. **Jev Neural Inference**: **TypeSafe System One Jev AI Predictor** performs deep neural reasoning to output 6 parallel mathematical judgments.

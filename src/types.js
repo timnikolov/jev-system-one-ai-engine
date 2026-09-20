@@ -19,7 +19,7 @@
  * @property {number[]} [rsiSequence] - Last 10 M15 RSI readings
  * @property {number[]} [atrSequence] - Last 5 M15 ATR readings
  * @property {string[]} [wickSequence] - Candle wick rejection types ('NORMAL' | 'UPPER_WICK_REJECTION' | 'LOWER_WICK_REJECTION')
- * @property {Object} [account] - MT5 Live Account Context
+ * @property {Object} [account] - Brokerage Live Account Context
  * @property {number} [account.balance=10000.0] - Account balance (€)
  * @property {number} [account.equity=10000.0] - Account equity (€)
  * @property {number} [account.margin=0.0] - Margin used (€)

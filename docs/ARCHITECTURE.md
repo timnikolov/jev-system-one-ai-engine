@@ -13,7 +13,7 @@ To solve this, the **TypeSafe Jev System One AI Engine** enforces a **Hybrid Dua
 ```mermaid
 flowchart TD
     subgraph Step1 ["1. Telemetry Collection"]
-        A["MT5 Market Quotes (Bid/Ask/Spread)<br/>Account Equity & Macro Calendar Events"]
+        A["Market Quotes (Bid/Ask/Spread)<br/>Account Equity & Macro Calendar Events"]
     end
 
     subgraph Step2 ["2. Indicator & Sequence Transformation"]
@@ -59,7 +59,7 @@ flowchart TD
 ## 2. Complete System Pipeline Breakdown
 
 1. **Step 1: Telemetry Collection (`TelemetryInputState`)**
-   - Collects real-time market quotes (Bid, Ask, Spread), MT5 live account balance/equity/margin, and macro economic news events.
+   - Collects real-time market quotes (Bid, Ask, Spread) from any brokerage API (Interactive Brokers, FIX API, cTrader, Tradovate, Binance), live account balance/equity/margin, and macro economic news events.
 2. **Step 2: Indicator & Sequence Transformation**
    - Transforms raw ticks into 10-candle M15 price deltas, multi-timeframe RSI (M15/H1/H4/D1), Volume Profile (POC/VAH/VAL) support/resistance walls, ATR expansion ratios, and 21/50/55/89/200 EMA stack alignments.
 3. **Step 3: State Payload Synthesis**
