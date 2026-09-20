@@ -1,0 +1,27 @@
+{
+  "name": "jev-system-one-ai-engine",
+  "version": "1.0.0",
+  "description": "Standalone System One AI Engine & Deterministic Policy Guardrail System for High-Frequency Quantitative Trading (AI PM Portfolio)",
+  "main": "src/index.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/index.js",
+    "demo": "node examples/run_prediction.js",
+    "test:policy": "node examples/test_policy_engine.js"
+  },
+  "keywords": [
+    "ai-product-management",
+    "system-one-ai",
+    "llm-policy-engine",
+    "financial-trading-ai",
+    "deterministic-guardrails",
+    "typesafe-predictions"
+  ],
+  "author": "AI Product Manager Portfolio",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "sqlite3": "^5.1.7"
+  }
+}
