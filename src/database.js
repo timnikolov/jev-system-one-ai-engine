@@ -156,6 +156,8 @@ export function getAccuracyStats() {
   if (totalEvaluated === 0) {
     return {
       totalEvaluated: 0,
+      activeForecastsTotal: 0,
+      vetoedTotal: 0,
       directionHitCount: 0,
       directionHitRatePct: 0.0,
       actionableTotal: 0,
@@ -172,14 +174,27 @@ export function getAccuracyStats() {
   let sumAbsError = 0;
   let actionableTotal = 0;
   let actionableHitCount = 0;
+  let activeForecastsTotal = 0;
+  let vetoedTotal = 0;
 
   evaluated.forEach(p => {
-    if (p.is_direction_hit === 1) hitCount++;
-    sumAccuracy += (parseFloat(p.accuracy_score) || 0.0);
+    const isVetoed = p.is_trade_vetoed === 1 ||
+                     p.is_trade_vetoed === true ||
+                     (p.policy_verdict || '').startsWith('VETO') ||
+                     (p.actionable_setup || '').startsWith('NO');
+
+    if (isVetoed) {
+      vetoedTotal++;
+    } else {
+      activeForecastsTotal++;
+      if (p.is_direction_hit === 1) hitCount++;
+      sumAccuracy += (parseFloat(p.accuracy_score) || 0.0);
+    }
+
     sumAbsError += Math.abs(parseFloat(p.actual_delta_points) || 0.0);
 
     const setupStr = (p.actionable_setup || '').toUpperCase();
-    if (setupStr.startsWith('YES')) {
+    if (setupStr.startsWith('YES') && !isVetoed) {
       actionableTotal++;
       if (p.is_direction_hit === 1) actionableHitCount++;
     }
@@ -189,12 +204,14 @@ export function getAccuracyStats() {
 
   return {
     totalEvaluated,
+    activeForecastsTotal,
+    vetoedTotal,
     directionHitCount: hitCount,
-    directionHitRatePct: +((hitCount / totalEvaluated) * 100).toFixed(1),
+    directionHitRatePct: activeForecastsTotal > 0 ? +((hitCount / activeForecastsTotal) * 100).toFixed(1) : 0.0,
     actionableTotal,
     actionableHitCount,
     actionableHitRatePct: actionableTotal > 0 ? +((actionableHitCount / actionableTotal) * 100).toFixed(1) : 0.0,
-    avgAccuracyScore: +(sumAccuracy / totalEvaluated).toFixed(1),
+    avgAccuracyScore: activeForecastsTotal > 0 ? +(sumAccuracy / activeForecastsTotal).toFixed(1) : 0.0,
     meanAbsoluteErrorPts: +(sumAbsError / totalEvaluated).toFixed(1),
     latestPrediction: latest
   };

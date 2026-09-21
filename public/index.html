@@ -283,18 +283,24 @@
     <div class="card col-span-4">
       <div class="card-title">Accuracy Benchmarks</div>
       
-      <div style="display: flex; flex-direction: column; gap: 16px;">
-        <div class="metric-item">
-          <div class="metric-label">Evaluated Predictions</div>
-          <div class="metric-val" id="acc-total">124</div>
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <div class="metric-item">
+            <div class="metric-label">Evaluated Total</div>
+            <div class="metric-val" id="acc-total">--</div>
+          </div>
+          <div class="metric-item">
+            <div class="metric-label">Active / Vetoed</div>
+            <div class="metric-val" id="acc-active-vetoed" style="font-size: 14px; color: var(--text-muted);"><span id="acc-active" style="color: var(--accent-blue);">--</span> / <span id="acc-vetoed" style="color: #94a3b8;">--</span></div>
+          </div>
         </div>
         <div class="metric-item">
-          <div class="metric-label">Direction Hit Rate %</div>
-          <div class="metric-val" id="acc-hitrate" style="color: var(--accent-green);">74.2%</div>
+          <div class="metric-label">Active Trade Direction Hit Rate %</div>
+          <div class="metric-val" id="acc-hitrate" style="color: var(--accent-green);">--%</div>
         </div>
         <div class="metric-item">
           <div class="metric-label">Mean Absolute Error (MAE)</div>
-          <div class="metric-val" id="acc-mae" style="color: var(--accent-blue);">14.8 pts</div>
+          <div class="metric-val" id="acc-mae" style="color: var(--accent-blue);">-- pts</div>
         </div>
       </div>
     </div>
@@ -344,7 +350,14 @@
 
     <!-- Historical Predictions Table -->
     <div class="card col-span-6">
-      <div class="card-title">Prediction Log & Closed-Loop Evaluator</div>
+      <div class="card-title" style="display: flex; align-items: center; justify-content: space-between;">
+        <span>Prediction Log & Closed-Loop Evaluator</span>
+        <div style="display: flex; gap: 4px;" id="history-filter-btns">
+          <button onclick="setHistoryFilter('ALL')" class="btn-filter active" id="btn-filter-ALL" style="background: rgba(56,189,248,0.2); border: 1px solid var(--accent-blue); color: var(--accent-blue); padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;">All</button>
+          <button onclick="setHistoryFilter('ACTIVE')" class="btn-filter" id="btn-filter-ACTIVE" style="background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); color: var(--text-muted); padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;">Active</button>
+          <button onclick="setHistoryFilter('VETOED')" class="btn-filter" id="btn-filter-VETOED" style="background: rgba(15,23,42,0.6); border: 1px solid var(--border-color); color: var(--text-muted); padding: 2px 8px; border-radius: 4px; font-size: 10px; cursor: pointer;">🛡️ Vetoed</button>
+        </div>
+      </div>
       <div style="overflow-x: auto; max-height: 260px;">
         <table>
           <thead>
@@ -366,12 +379,36 @@
   </div>
 
   <script>
+    let activeFilter = 'ALL';
+    let rawPredictionsHistory = [];
+
+    function setHistoryFilter(filterMode) {
+      activeFilter = filterMode;
+      ['ALL', 'ACTIVE', 'VETOED'].forEach(f => {
+        const btn = document.getElementById(`btn-filter-${f}`);
+        if (btn) {
+          if (f === filterMode) {
+            btn.style.background = 'rgba(56,189,248,0.2)';
+            btn.style.borderColor = 'var(--accent-blue)';
+            btn.style.color = 'var(--accent-blue)';
+          } else {
+            btn.style.background = 'rgba(15,23,42,0.6)';
+            btn.style.borderColor = 'var(--border-color)';
+            btn.style.color = 'var(--text-muted)';
+          }
+        }
+      });
+      renderHistoryRows();
+    }
+
     async function fetchAccuracy() {
       try {
         const res = await fetch('/api/v1/accuracy');
         const data = await res.json();
         if (data.success && data.stats) {
           document.getElementById('acc-total').innerText = data.stats.totalEvaluated || 0;
+          document.getElementById('acc-active').innerText = data.stats.activeForecastsTotal || 0;
+          document.getElementById('acc-vetoed').innerText = data.stats.vetoedTotal || 0;
           document.getElementById('acc-hitrate').innerText = `${data.stats.directionHitRatePct || 0}%`;
           document.getElementById('acc-mae').innerText = `${data.stats.meanAbsoluteErrorPts || 0} pts`;
         }
@@ -380,25 +417,59 @@
 
     async function fetchHistory() {
       try {
-        const res = await fetch('/api/v1/predictions?limit=10');
+        const res = await fetch('/api/v1/predictions?limit=25');
         const data = await res.json();
         if (data.success && Array.isArray(data.predictions)) {
-          const tbody = document.getElementById('history-rows');
-          if (data.predictions.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No predictions logged yet. Click "Run Live Prediction".</td></tr>';
-            return;
-          }
-          tbody.innerHTML = data.predictions.map(p => `
-            <tr>
-              <td>#${p.id}</td>
-              <td style="color: ${p.predicted_score >= 3.5 ? 'var(--accent-green)' : (p.predicted_score <= 2.5 ? 'var(--accent-red)' : 'var(--text-muted)')}; font-weight: 700;">${p.predicted_score}</td>
-              <td>${p.predicted_direction}</td>
-              <td style="font-size: 11px;">${p.policy_verdict}</td>
-              <td>${p.status === 'EVALUATED' ? (p.is_direction_hit ? '✅ HIT' : '❌ MISS') : '⏳ PENDING'}</td>
-            </tr>
-          `).join('');
+          rawPredictionsHistory = data.predictions;
+          renderHistoryRows();
         }
       } catch (e) {}
+    }
+
+    function renderHistoryRows() {
+      const tbody = document.getElementById('history-rows');
+      if (!rawPredictionsHistory || rawPredictionsHistory.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No predictions logged yet. Click "Run Live Prediction".</td></tr>';
+        return;
+      }
+
+      let filtered = rawPredictionsHistory;
+      if (activeFilter === 'ACTIVE') {
+        filtered = rawPredictionsHistory.filter(p => !(p.is_trade_vetoed === 1 || p.is_trade_vetoed === true || (p.policy_verdict || '').startsWith('VETO') || p.actual_direction === 'VETOED_NO_TRADE'));
+      } else if (activeFilter === 'VETOED') {
+        filtered = rawPredictionsHistory.filter(p => p.is_trade_vetoed === 1 || p.is_trade_vetoed === true || (p.policy_verdict || '').startsWith('VETO') || p.actual_direction === 'VETOED_NO_TRADE');
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: var(--text-muted);">No records matching filter '${activeFilter}'.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(p => {
+        const isVetoed = p.is_trade_vetoed === 1 || p.is_trade_vetoed === true || (p.policy_verdict || '').startsWith('VETO') || p.actual_direction === 'VETOED_NO_TRADE';
+        let statusBadge = '';
+        if (p.status === 'EVALUATED') {
+          if (isVetoed) {
+            statusBadge = '<span style="background: rgba(148, 163, 184, 0.15); color: #94a3b8; border: 1px solid rgba(148, 163, 184, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">🛡️ VETOED (NO TRADE)</span>';
+          } else if (p.is_direction_hit === 1 || p.is_direction_hit === true) {
+            statusBadge = '<span style="background: rgba(52, 211, 153, 0.15); color: var(--accent-green); border: 1px solid rgba(52, 211, 153, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">✅ HIT</span>';
+          } else {
+            statusBadge = '<span style="background: rgba(248, 113, 113, 0.15); color: var(--accent-red); border: 1px solid rgba(248, 113, 113, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">❌ MISS</span>';
+          }
+        } else {
+          statusBadge = '<span style="background: rgba(250, 204, 21, 0.15); color: var(--accent-yellow); border: 1px solid rgba(250, 204, 21, 0.3); padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700;">⏳ PENDING</span>';
+        }
+
+        return `
+          <tr>
+            <td>#${p.id}</td>
+            <td style="color: ${p.predicted_score >= 3.5 ? 'var(--accent-green)' : (p.predicted_score <= 2.5 ? 'var(--accent-red)' : 'var(--text-muted)')}; font-weight: 700;">${p.predicted_score}</td>
+            <td>${p.predicted_direction}</td>
+            <td style="font-size: 11px; color: ${isVetoed ? '#f87171' : 'var(--text-muted)'};">${p.policy_verdict}</td>
+            <td>${statusBadge}</td>
+          </tr>
+        `;
+      }).join('');
     }
 
     async function runLivePrediction() {

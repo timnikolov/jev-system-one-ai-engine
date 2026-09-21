@@ -366,22 +366,34 @@ export function evaluatePendingPredictions(currentBid) {
       const actualDeltaPts = +(currentBid - startPrice).toFixed(2);
       const score = parseFloat(pred.predicted_score) || 3.0;
 
+      const isVetoed = pred.is_trade_vetoed === 1 ||
+                       pred.is_trade_vetoed === true ||
+                       (pred.policy_verdict || '').startsWith('VETO') ||
+                       (pred.actionable_setup || '').startsWith('NO');
+
       let isDirectionHit = false;
       let accuracyScore = 0.0;
       let actualDirection = 'NEUTRAL';
 
-      if (actualDeltaPts >= 3.0) actualDirection = 'BULLISH_UP';
-      else if (actualDeltaPts <= -3.0) actualDirection = 'BEARISH_DOWN';
+      if (isVetoed) {
+        // Vetoed / Low Confidence calls are No-Trade decisions (No forecast made)
+        actualDirection = actualDeltaPts >= 3.0 ? 'BULLISH_UP (VETOED)' : (actualDeltaPts <= -3.0 ? 'BEARISH_DOWN (VETOED)' : 'VETOED_NO_TRADE');
+        isDirectionHit = false;
+        accuracyScore = 0.0;
+      } else {
+        if (actualDeltaPts >= 3.0) actualDirection = 'BULLISH_UP';
+        else if (actualDeltaPts <= -3.0) actualDirection = 'BEARISH_DOWN';
 
-      if (score > 3.0 && actualDeltaPts >= 1.5) {
-        isDirectionHit = true;
-        accuracyScore = 100.0;
-      } else if (score < 3.0 && actualDeltaPts <= -1.5) {
-        isDirectionHit = true;
-        accuracyScore = 100.0;
-      } else if (score === 3.0 && Math.abs(actualDeltaPts) <= 15.0) {
-        isDirectionHit = true;
-        accuracyScore = 100.0;
+        if (score > 3.0 && actualDeltaPts >= 1.5) {
+          isDirectionHit = true;
+          accuracyScore = 100.0;
+        } else if (score < 3.0 && actualDeltaPts <= -1.5) {
+          isDirectionHit = true;
+          accuracyScore = 100.0;
+        } else if (score === 3.0 && Math.abs(actualDeltaPts) <= 15.0) {
+          isDirectionHit = true;
+          accuracyScore = 100.0;
+        }
       }
 
       evaluatePrediction(pred.id, currentBid, actualDirection, actualDeltaPts, isDirectionHit, accuracyScore);

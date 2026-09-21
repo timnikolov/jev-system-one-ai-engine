@@ -94,7 +94,7 @@ flowchart TD
 4. **Jev Neural Inference**: **TypeSafe System One Jev AI Predictor** performs deep neural reasoning to output 6 parallel mathematical judgments.
 5. **Deterministic Guardrails ("Code Decides")**: Policy rules evaluate Jev's output — triggering **Hard Vetoes** (blocking trades when confidence < 70% or toxicity >= 55%) or rendering **Soft Warnings** (visual warnings for macro news releases).
 6. **Final Trade Recommendation & Conviction**: Generates final actionable verdict with continuous conviction probability % (e.g. `YES - Bullish Setup (75% Conviction | Quality 4.0/5.0)`).
-7. **Telemetry & Accuracy Evaluation**: Stores prediction record in embedded SQLite DB and evaluates direction hit rate % and Mean Absolute Error (MAE) when the target candle closes.
+7. **Telemetry & Accuracy Evaluation**: Stores prediction record in embedded SQLite DB and evaluates direction hit rate % and Mean Absolute Error (MAE) when the target candle closes. **Vetoed / Low-Confidence predictions** (`is_trade_vetoed = true`) are evaluated as **`🛡️ VETOED (NO TRADE)`** with neutral slate badging and are strictly excluded from active trade hit rate denominators to ensure quantitative accuracy.
 
 ---
 

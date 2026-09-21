@@ -99,9 +99,10 @@ Instead of requesting an unstructured text summary or a single binary trade deci
 4. **Volume Profile Range Wall Resistance**: If `predictedScore >= 3.5` but price is at 4H Range Ceiling (`rangeLocationPct >= 96%`) without extreme confluence (`signal_quality < 4.5`), verdict set to `VETO_RANGE_CEILING_WALL`.
 5. **Intraday Range Exhaustion**: If `predictedScore >= 3.5` and `adrExhaustionPct >= 130%`, verdict set to `VETO_ADR_EXHAUSTION_OVERSTRETCH`.
 
-### Visual Soft Warnings (Non-Blocking)
-1. **Economic News Proximity**: Imminent high-impact news releases (CPI, NFP, FOMC) render visual warning cards in the user UI (`pre_news_freeze_window: true`), allowing the user to observe market reaction without hard-blocking valid technical setups.
-2. **Account Drawdown Warning**: Drawdown warning thresholds (`current_drawdown_pct >= 3.5%`) are displayed visually to highlight open risk.
+### Closed-Loop Veto Evaluation Standard (No-Trade Decisions)
+- **Quantitative Benchmark Rule**: When a prediction is vetoed (`is_trade_vetoed = true`) by deterministic guardrails (e.g. low confidence, toxic order flow, or poor signal quality), the decision represents a **successful execution block**, NOT a directional prediction failure.
+- **Hit Rate Exemption**: Vetoed predictions are assigned `actualDirection: 'VETOED_NO_TRADE'` and are **excluded from the active directional trade hit rate denominator** (`activeForecastsTotal`) to preserve true directional precision analytics.
+- **UI Badging**: Rendered as a neutral slate gray badge (`🛡️ VETOED (NO TRADE)`) in the monitoring dashboard log, strictly distinguishing safety vetoes from active trade outcomes (`✓ HIT` / `✗ MISS`).
 
 ---
 
